@@ -12,7 +12,7 @@ disable-model-invocation: true
 
 Upstream: [gethomepage/homepage](https://github.com/gethomepage/homepage). Fork:
 [rafaelgaspar/homepage](https://github.com/rafaelgaspar/homepage). Ships
-**`ghcr.io/rafaelgaspar/homepage`** from integration branch **`rafaelgaspar`**.
+**`ghcr.io/rafaelgaspar/homepage`** from integration branch **`rafaelgaspar`** (image tag `vX.Y.Z-rafaelgaspar.N`, starting at `.0`).
 
 This skill covers **this repository only** — branch workflow, CI, and integration replay.
 Deploy-specific config (Helm, secrets, theme overlays) belongs in your own private repo, not here.
