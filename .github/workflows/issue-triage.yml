@@ -1,10 +1,7 @@
 name: Issue Triage
 
 on:
-  issues:
-    types: [labeled]
-  discussion:
-    types: [labeled]
+  workflow_dispatch:
 
 permissions: {}
 
