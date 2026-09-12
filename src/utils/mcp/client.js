@@ -108,7 +108,15 @@ function authHeaders(probe) {
   return headers;
 }
 
-async function fetchToolsList(probe) {
+export function countTools(tools, probe) {
+  const list = Array.isArray(tools) ? tools : [];
+  if (probe.type === "gateway-filtered" && probe.toolPrefix) {
+    return list.filter((tool) => tool?.name?.startsWith(probe.toolPrefix)).length;
+  }
+  return list.length;
+}
+
+async function fetchGatewayTools(probe) {
   const baseHeaders = authHeaders(probe);
   let rpcId = 1;
   const init = await mcpPost(
@@ -157,23 +165,74 @@ async function fetchToolsList(probe) {
     throw new Error(listed.body.error.message || "tools/list error");
   }
 
-  const tools = listed.body?.result?.tools || [];
   return {
-    toolCount: Array.isArray(tools) ? tools.length : 0,
+    tools: listed.body?.result?.tools || [],
     latencyMs: listed.latencyMs,
   };
 }
 
-export async function probeOne(probe) {
-  try {
-    const listed = await fetchToolsList(probe);
+function gatewayCacheKey(probe) {
+  return `${probe.url}|${probe.tokenEnv || ""}`;
+}
+
+function resultFromGateway(probe, gatewayResult) {
+  if (!gatewayResult.ok) {
     return {
-      ok: true,
-      toolCount: listed.toolCount,
-      latencyMs: listed.latencyMs,
+      ok: false,
+      toolCount: 0,
+      latencyMs: null,
+      error: gatewayResult.error,
       serviceName: probe.serviceName,
       id: probe.id,
+      type: probe.type,
     };
+  }
+  return {
+    ok: true,
+    toolCount: countTools(gatewayResult.tools, probe),
+    latencyMs: gatewayResult.latencyMs,
+    serviceName: probe.serviceName,
+    id: probe.id,
+    type: probe.type,
+  };
+}
+
+async function runDirectToolsList(probe) {
+  const listed = await fetchGatewayTools(probe);
+  return {
+    ok: true,
+    toolCount: countTools(listed.tools, probe),
+    latencyMs: listed.latencyMs,
+    serviceName: probe.serviceName,
+    id: probe.id,
+    type: probe.type,
+  };
+}
+
+export async function probeOne(probe, gatewayCache = Object.create(null)) {
+  try {
+    if (probe.type === "direct") {
+      return await runDirectToolsList(probe);
+    }
+
+    const cacheKey = gatewayCacheKey(probe);
+    if (!gatewayCache[cacheKey]) {
+      try {
+        const listed = await fetchGatewayTools(probe);
+        gatewayCache[cacheKey] = {
+          ok: true,
+          tools: listed.tools,
+          latencyMs: listed.latencyMs,
+        };
+      } catch (err) {
+        gatewayCache[cacheKey] = {
+          ok: false,
+          error: String(err.message || err),
+        };
+      }
+    }
+
+    return resultFromGateway(probe, gatewayCache[cacheKey]);
   } catch (err) {
     return {
       ok: false,
@@ -182,6 +241,7 @@ export async function probeOne(probe) {
       error: String(err.message || err),
       serviceName: probe.serviceName,
       id: probe.id,
+      type: probe.type,
     };
   }
 }

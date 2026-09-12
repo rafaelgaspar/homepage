@@ -11,9 +11,10 @@ export async function refreshAll(force = false) {
   }
 
   const probes = await loadMcpProbes();
+  const gatewayCache = Object.create(null);
   const results = [];
   for (const probe of probes) {
-    const result = await probeOne(probe);
+    const result = await probeOne(probe, gatewayCache);
     cache.byId[probe.id] = result;
     results.push(result);
   }

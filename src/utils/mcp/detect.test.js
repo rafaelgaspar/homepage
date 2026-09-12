@@ -1,40 +1,44 @@
 import { describe, expect, it } from "vitest";
 
-import { buildProbe, shouldProbe } from "./detect";
+import { buildProbe, probeUrl, shouldProbe } from "./detect";
+import { countTools } from "./client";
 
 describe("utils/mcp/detect", () => {
-  it("probes MCP cards by href", () => {
+  it("requires explicit mcpProbe config", () => {
     expect(
       shouldProbe({
         name: "Flux MCP",
         href: "http://flux-mcp.flux-system.svc.cluster.local.rafaelgaspar.xyz:9090/mcp",
       }),
-    ).toBe(true);
-  });
-
-  it("ignores non-MCP hrefs", () => {
-    expect(
-      shouldProbe({
-        name: "Grafana",
-        href: "https://grafana.local.rafaelgaspar.xyz",
-      }),
     ).toBe(false);
   });
 
-  it("builds probes from href with optional tokenEnv", () => {
-    const direct = buildProbe({
+  it("builds gateway-filtered probes from mcpProbe.url", () => {
+    const probe = buildProbe({
       name: "Flux MCP",
       href: "http://flux-mcp.flux-system.svc.cluster.local.rafaelgaspar.xyz:9090/mcp",
+      mcpProbe: {
+        type: "gateway-filtered",
+        url: "https://cluster-mcp.local.rafaelgaspar.xyz/mcp",
+        tokenEnv: "CLUSTER_MCP_TOKEN",
+        toolPrefix: "flux-mcp__",
+      },
     });
-    expect(direct.url).toBe("http://flux-mcp.flux-system.svc.cluster.local.rafaelgaspar.xyz:9090/mcp");
-    expect(direct.tokenEnv).toBeUndefined();
 
-    const gateway = buildProbe({
-      name: "Cluster MCP",
-      href: "https://cluster-mcp.local.rafaelgaspar.xyz/mcp",
-      mcpProbe: { tokenEnv: "CLUSTER_MCP_TOKEN" },
-    });
-    expect(gateway.url).toBe("https://cluster-mcp.local.rafaelgaspar.xyz/mcp");
-    expect(gateway.tokenEnv).toBe("CLUSTER_MCP_TOKEN");
+    expect(probe.type).toBe("gateway-filtered");
+    expect(probe.url).toBe("https://cluster-mcp.local.rafaelgaspar.xyz/mcp");
+    expect(probe.toolPrefix).toBe("flux-mcp__");
+  });
+});
+
+describe("utils/mcp/client countTools", () => {
+  it("filters gateway tools by prefix", () => {
+    const tools = [{ name: "flux-mcp__list" }, { name: "kubernetes-mcp__pods" }];
+    expect(
+      countTools(tools, {
+        type: "gateway-filtered",
+        toolPrefix: "flux-mcp__",
+      }),
+    ).toBe(1);
   });
 });
