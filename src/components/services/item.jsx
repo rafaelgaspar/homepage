@@ -3,6 +3,7 @@ import { useContext, useState } from "react";
 
 import KubernetesStatus from "./kubernetes-status";
 import McpStatus from "./mcp-status";
+import ScalingToggle from "./scaling-toggle";
 import Ping from "./ping";
 import ProxmoxStatus from "./proxmox-status";
 import SiteMonitor from "./site-monitor";
@@ -18,6 +19,7 @@ import ProxmoxVM from "widgets/proxmoxvm/component";
 
 export default function Item({ service, groupName, useEqualHeights }) {
   const mcpCard = isMcpService(service);
+  const scalingCard = Boolean(service.namespace && service.app);
   const hasLink = service.href && service.href !== "#" && !mcpCard;
   const { settings } = useContext(SettingsContext);
   const showStats = service.showStats === false ? false : settings.showStats;
@@ -68,7 +70,10 @@ export default function Item({ service, groupName, useEqualHeights }) {
               href={service.href}
               target={service.target ?? settings.target ?? "_blank"}
               rel="noreferrer"
-              className="flex-1 flex items-center justify-between rounded-r-md service-title-text"
+              className={classNames(
+                "flex-1 flex items-center justify-between rounded-r-md service-title-text",
+                scalingCard && "homepage-scaling-title-link",
+              )}
             >
               <div className="flex-1 px-2 py-2 text-sm text-left z-10 service-name">
                 {service.name}
@@ -87,6 +92,8 @@ export default function Item({ service, groupName, useEqualHeights }) {
               </div>
             </div>
           )}
+
+          {scalingCard && <ScalingToggle service={service} />}
 
           <div
             className={`absolute top-0 right-0 flex flex-row justify-end ${
