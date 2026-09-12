@@ -1,19 +1,7 @@
 import useSWR from "swr";
 
-function fetchMcpMonitor(url) {
-  return fetch(url, {
-    credentials: "same-origin",
-    headers: { Accept: "application/json" },
-  }).then((response) => {
-    if (!response.ok) {
-      throw new Error(`mcpMonitor ${response.status}`);
-    }
-    return response.json();
-  });
-}
-
 export default function McpStatus({ service, style }) {
-  const { data, error } = useSWR("/api/mcpMonitor", fetchMcpMonitor, {
+  const { data, error } = useSWR("/api/mcpMonitor", {
     refreshInterval: 30000,
   });
 
@@ -36,7 +24,7 @@ export default function McpStatus({ service, style }) {
 
   let dotClass = colorClass;
   if (style === "dot") {
-    backgroundClass = "p-4 hover:bg-theme-500/10 dark:hover:bg-theme-900/20";
+    backgroundClass = "p-0";
     dotClass = colorClass.replace(/text-/g, "bg-").replace(/\/\d\d/g, "");
   }
 
