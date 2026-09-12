@@ -6,6 +6,25 @@ const PROBE_TIMEOUT_MS = Number(process.env.HOMEPAGE_MCP_PROBE_TIMEOUT_MS || 150
 const MCP_PROTOCOL = "2024-11-05";
 const SESSION_HEADER = "mcp-session-id";
 
+/** Parse JSON-RPC from plain JSON or MCP streamable HTTP (SSE) bodies. */
+export function parseJsonRpcMessage(raw) {
+  const chunks = raw.trim();
+  if (!chunks) {
+    return null;
+  }
+  if (chunks.startsWith("event:") || chunks.includes("\ndata:")) {
+    const dataLines = chunks
+      .split("\n")
+      .filter((line) => line.startsWith("data:"))
+      .map((line) => line.slice(5).trim());
+    if (!dataLines.length) {
+      throw new Error("SSE response missing data line");
+    }
+    return JSON.parse(dataLines[dataLines.length - 1]);
+  }
+  return JSON.parse(chunks);
+}
+
 function resolveToken(tokenEnv) {
   if (!tokenEnv) return null;
   const value = process.env[tokenEnv];
@@ -60,7 +79,7 @@ function mcpPost(urlString, body, headers) {
           }
           let parsed;
           try {
-            parsed = JSON.parse(chunks);
+            parsed = parseJsonRpcMessage(chunks);
           } catch (err) {
             reject(new Error(`invalid JSON: ${err.message}`));
             return;
