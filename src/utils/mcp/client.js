@@ -42,29 +42,8 @@ function parseProbeUrl(urlString) {
   };
 }
 
-function mcpRequestOptions(url, probe) {
-  const isHttps = url.protocol === "https:";
-  const requestModule = isHttps ? https : http;
-  const opts = {
-    hostname: url.hostname,
-    port: url.port || (isHttps ? 443 : 80),
-    path: `${url.pathname}${url.search}`,
-    method: "POST",
-  };
-  if (isHttps) {
-    const sni = probe?.servername || url.hostname;
-    opts.servername = sni;
-    // Connect to cluster Service DNS while presenting the cert SAN (e.g. HA).
-    if (sni !== url.hostname) {
-      opts.rejectUnauthorized = false;
-    }
-  }
-  return { requestModule, opts };
-}
-
-function mcpPost(urlString, body, headers, probe) {
-  const url = new URL(urlString);
-  const { requestModule, opts: baseOpts } = mcpRequestOptions(url, probe);
+function mcpPost(urlString, body, headers) {
+  const { url, requestModule } = parseProbeUrl(urlString);
   const payload = JSON.stringify(body);
   const start = performance.now();
 
@@ -72,13 +51,17 @@ function mcpPost(urlString, body, headers, probe) {
     let timer;
     const req = requestModule.request(
       {
-        ...baseOpts,
+        hostname: url.hostname,
+        port: url.port || (url.protocol === "https:" ? 443 : 80),
+        path: `${url.pathname}${url.search}`,
+        method: "POST",
         headers: {
           Accept: "application/json, text/event-stream",
           "Content-Type": "application/json",
           "Content-Length": Buffer.byteLength(payload),
           ...headers,
         },
+        servername: url.hostname,
       },
       (res) => {
         let chunks = "";
@@ -141,7 +124,6 @@ async function fetchToolsList(probe) {
       },
     },
     baseHeaders,
-    probe,
   );
   rpcId += 1;
 
@@ -158,7 +140,6 @@ async function fetchToolsList(probe) {
       params: {},
     },
     sessionHeaders,
-    probe,
   );
 
   const listed = await mcpPost(
@@ -170,7 +151,6 @@ async function fetchToolsList(probe) {
       params: {},
     },
     sessionHeaders,
-    probe,
   );
 
   if (listed.body?.error) {
