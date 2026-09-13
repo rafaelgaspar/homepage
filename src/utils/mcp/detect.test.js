@@ -36,5 +36,12 @@ describe("utils/mcp/detect", () => {
     });
     expect(gateway.url).toBe("https://cluster-mcp.local.rafaelgaspar.xyz/mcp");
     expect(gateway.tokenEnv).toBe("CLUSTER_MCP_TOKEN");
+
+    const tlsSni = buildProbe({
+      name: "Home Assistant MCP",
+      href: "https://home-assistant.home-assistant.svc.cluster.local.rafaelgaspar.xyz/api/mcp",
+      mcpProbe: { servername: "home-assistant.local.rafaelgaspar.xyz" },
+    });
+    expect(tlsSni.servername).toBe("home-assistant.local.rafaelgaspar.xyz");
   });
 });

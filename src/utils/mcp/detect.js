@@ -40,5 +40,7 @@ export function buildProbe(service) {
     serviceName: service.name,
     url,
     tokenEnv: cfg.tokenEnv,
+    // TLS ClientHello SNI (Node https `servername`); ignored for http:// hrefs.
+    servername: cfg.servername,
   };
 }
