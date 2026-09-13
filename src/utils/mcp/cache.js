@@ -2,7 +2,7 @@ import { loadMcpProbes } from "utils/mcp/service";
 import { probeOne } from "utils/mcp/client";
 
 const CACHE_TTL_MS = 30000;
-const PROBE_CONCURRENCY = 2;
+const PROBE_CONCURRENCY = 10;
 
 const cache = { at: 0, byId: Object.create(null) };
 let refreshInFlight = null;
@@ -28,13 +28,9 @@ async function mapWithConcurrency(items, fn, limit) {
 }
 
 async function runRefresh(probes) {
-  await mapWithConcurrency(
-    probes,
-    async (probe) => {
-      cache.byId[probe.id] = await probeOne(probe);
-    },
-    PROBE_CONCURRENCY,
-  );
+  await mapWithConcurrency(probes, async (probe) => {
+    cache.byId[probe.id] = await probeOne(probe);
+  }, PROBE_CONCURRENCY);
   cache.at = Date.now();
   return Object.values(cache.byId);
 }
@@ -55,20 +51,27 @@ export async function refreshAll(force = false) {
     return cachedResults();
   }
 
-  if (!refreshInFlight) {
-    refreshInFlight = loadMcpProbes()
-      .then((probes) => runRefresh(probes))
-      .finally(() => {
-        refreshInFlight = null;
-      });
+  if (!force && hasCachedResults()) {
+    if (!refreshInFlight) {
+      refreshInFlight = loadMcpProbes()
+        .then((probes) => runRefresh(probes))
+        .finally(() => {
+          refreshInFlight = null;
+        });
+    }
+    return cachedResults();
   }
 
-  if (force) {
+  if (refreshInFlight) {
     await refreshInFlight;
     return cachedResults();
   }
 
-  return hasCachedResults() ? cachedResults() : [];
+  const probes = await loadMcpProbes();
+  refreshInFlight = runRefresh(probes).finally(() => {
+    refreshInFlight = null;
+  });
+  return refreshInFlight;
 }
 
 export async function refreshOne(id, force = false) {
