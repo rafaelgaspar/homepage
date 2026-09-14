@@ -2,9 +2,7 @@ import http from "http";
 import https from "https";
 import { performance } from "perf_hooks";
 
-import { getProbeTimeoutMs } from "utils/mcp/timing";
-
-const PROBE_TIMEOUT_MS = getProbeTimeoutMs();
+const PROBE_TIMEOUT_MS = Number(process.env.HOMEPAGE_MCP_PROBE_TIMEOUT_MS || 15000);
 const MCP_PROTOCOL = "2024-11-05";
 const SESSION_HEADER = "mcp-session-id";
 
