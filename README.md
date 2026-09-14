@@ -27,6 +27,16 @@
   <a href="https://paypal.me/phelpsben" title="Donate"><img alt="GitHub Sponsors" src="https://img.shields.io/github/sponsors/benphelps"></a>
 </p>
 
+## rafaelgaspar fork
+
+This repository is a [GPL-3.0](LICENSE) fork of [gethomepage/homepage](https://github.com/gethomepage/homepage).
+Customizations ship as Docker images built from the **`rafaelgaspar`** integration branch:
+
+- **Image:** [`ghcr.io/rafaelgaspar/homepage`](https://github.com/rafaelgaspar/homepage/pkgs/container/homepage)
+- **Workflow:** linear stacked `feat/*` branches (see [`.cursor/skills/rafaelgaspar-fork/SKILL.md`](.cursor/skills/rafaelgaspar-fork/SKILL.md))
+
+For upstream Homepage docs and community support, see [gethomepage.dev](https://gethomepage.dev/).
+
 # Features
 
 With features like quick search, bookmarks, weather support, a wide range of integrations and widgets, an elegant and modern design, and a focus on performance, Homepage is your ideal start to the day and a handy companion throughout it.
