@@ -267,6 +267,7 @@ export function cleanServiceGroups(groups) {
     name: serviceGroup.name,
     services: serviceGroup.services.map((service) => {
       const cleanedService = { ...service };
+      delete cleanedService.mcpProbe;
       if (cleanedService.showStats !== undefined) cleanedService.showStats = JSON.parse(cleanedService.showStats);
       if (typeof service.weight === "string") {
         const weight = parseInt(service.weight, 10);
