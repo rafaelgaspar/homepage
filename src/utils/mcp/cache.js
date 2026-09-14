@@ -1,7 +1,7 @@
 import { loadMcpProbes } from "utils/mcp/service";
 import { probeOne } from "utils/mcp/client";
 
-const CACHE_TTL_MS = 30000;
+const CACHE_TTL_MS = 300000;
 const PROBE_CONCURRENCY = 2;
 
 const cache = { at: 0, byId: Object.create(null) };

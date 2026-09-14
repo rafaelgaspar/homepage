@@ -131,7 +131,7 @@ export default function Item({ service, groupName, useEqualHeights }) {
                 <span className="sr-only">View container stats</span>
               </button>
             )}
-            {service.app && !service.external && !mcpCard && (
+            {service.app && !service.external && (
               <button
                 type="button"
                 onClick={() => (statsOpen ? closeStats() : setStatsOpen(true))}
