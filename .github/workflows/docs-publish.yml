@@ -1,11 +1,6 @@
 name: Docs
 
 on:
-  push:
-    tags: ["v*.*.*"]
-    branches: ["main"]
-  pull_request:
-  merge_group:
   workflow_dispatch:
 
 permissions:
