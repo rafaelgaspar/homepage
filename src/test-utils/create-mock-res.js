@@ -22,8 +22,26 @@ export default function createMockRes() {
     return res;
   });
 
+  res.write = vi.fn((chunk) => {
+    const next = Buffer.from(chunk);
+    res.body = res.body ? Buffer.concat([Buffer.from(res.body), next]) : next;
+    return true;
+  });
+
   res.end = vi.fn((body) => {
-    res.body = body;
+    if (body !== undefined && body !== null) {
+      res.write(body);
+    }
+    if (typeof res._onFinish === "function") {
+      res._onFinish();
+    }
+    return res;
+  });
+
+  res.on = vi.fn((event, cb) => {
+    if (event === "finish") {
+      res._onFinish = cb;
+    }
     return res;
   });
 
