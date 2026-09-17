@@ -6,7 +6,7 @@ description: Kubernetes Configuration
 The Kubernetes connectivity has the following requirements:
 
 - Kubernetes 1.19+
-- Metrics Service
+- Metrics Server **or** Prometheus (when `podMetrics: prometheus` — see below)
 - An Ingress controller
   - Optionally: Gateway-API
 
@@ -35,6 +35,30 @@ ingress: true # default, enable ingress
 traefik: true # enable traefik ingressRoute
 gateway: true # enable gateway-api
 ```
+
+## Pod metrics (service widgets)
+
+Kubernetes service widgets show CPU and memory for pods matched by `app` / `podSelector`. Usage data comes from one of:
+
+- **`metricsServer`** (default) — [Metrics Server](https://github.com/kubernetes-sigs/metrics-server) (`metrics.k8s.io`), same as upstream Homepage today.
+- **`prometheus`** — instant queries against a Prometheus HTTP API (e.g. kube-prometheus / cAdvisor `container_*` series).
+
+```yaml
+mode: cluster
+podMetrics: metricsServer # default; omit to keep metrics-server
+```
+
+To use Prometheus instead:
+
+```yaml
+mode: cluster
+podMetrics: prometheus
+prometheus:
+  url: http://prometheus.example:9090
+  queryTimeoutMs: 15000 # optional, milliseconds
+```
+
+Limits are still read from pod resource specs via the Kubernetes API. Only the usage series source changes.
 
 ## Services
 
