@@ -2,6 +2,7 @@ import { SessionProvider } from "next-auth/react";
 import { appWithTranslation } from "next-i18next/pages";
 import Head from "next/head";
 import "styles/globals.css";
+import "../custom/css/index.css";
 import "styles/manrope.css";
 import "styles/theme.css";
 import { SWRConfig } from "swr";
