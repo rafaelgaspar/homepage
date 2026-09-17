@@ -1,5 +1,6 @@
 import { getPrivateWidgetOptions } from "utils/config/widget-helpers";
 import createLogger from "utils/logger";
+import { withApiMetrics } from "utils/metrics/api";
 import { parseVersionForUrl } from "utils/proxy/api-helpers";
 import { httpProxy } from "utils/proxy/http";
 
@@ -42,7 +43,7 @@ async function retrieveFromGlancesAPI(privateWidgetOptions, endpoint) {
   return JSON.parse(Buffer.from(data).toString());
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const { index, cputemp: includeCpuTemp, uptime: includeUptime, disk: includeDisks, version } = req.query;
 
   const privateWidgetOptions = await getPrivateWidgetOptions("glances", index);
@@ -76,3 +77,5 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: e.message });
   }
 }
+
+export default withApiMetrics("/api/widgets/glances", handler);

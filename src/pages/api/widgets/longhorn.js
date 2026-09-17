@@ -1,3 +1,4 @@
+import { withApiMetrics } from "utils/metrics/api";
 import { getSettings } from "../../../utils/config/config";
 import createLogger from "../../../utils/logger";
 import { httpProxy } from "../../../utils/proxy/http";
@@ -47,7 +48,7 @@ function parseLonghornData(data) {
   return nodes;
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const settings = getSettings();
   const longhornSettings = settings?.providers?.longhorn || {};
   const { url, username, password } = longhornSettings;
@@ -85,3 +86,5 @@ export default async function handler(req, res) {
     nodes,
   });
 }
+
+export default withApiMetrics("/api/widgets/longhorn", handler);

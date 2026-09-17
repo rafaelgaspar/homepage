@@ -1,12 +1,13 @@
 import { CoreV1Api, Metrics } from "@kubernetes/client-node";
 
+import { withApiMetrics } from "utils/metrics/api";
 import { getKubeConfig } from "../../../utils/config/kubernetes";
 import { parseCpu, parseMemory } from "../../../utils/kubernetes/utils";
 import createLogger from "../../../utils/logger";
 
 const logger = createLogger("widget");
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   try {
     const kc = getKubeConfig();
     if (!kc) {
@@ -98,3 +99,5 @@ export default async function handler(req, res) {
     });
   }
 }
+
+export default withApiMetrics("/api/widgets/kubernetes", handler);
