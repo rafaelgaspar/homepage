@@ -4,10 +4,11 @@ import { getKubeConfig } from "utils/config/kubernetes";
 import { fetchPodUsage } from "utils/kubernetes/pod-metrics";
 import { parseCpu, parseMemory } from "utils/kubernetes/utils";
 import createLogger from "utils/logger";
+import { withApiMetrics } from "utils/metrics/api";
 
 const logger = createLogger("kubernetesStatsService");
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const APP_LABEL = "app.kubernetes.io/name";
   const { service, podSelector } = req.query;
 
@@ -89,3 +90,5 @@ export default async function handler(req, res) {
     });
   }
 }
+
+export default withApiMetrics("/api/kubernetes/stats/[...service]", handler);
