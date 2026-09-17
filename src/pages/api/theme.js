@@ -1,6 +1,7 @@
 import checkAndCopyConfig, { getSettings } from "utils/config/config";
+import { withApiMetrics } from "utils/metrics/api";
 
-export default function handler({ res }) {
+function handler({ res }) {
   checkAndCopyConfig("settings.yaml");
   const settings = getSettings();
 
@@ -12,3 +13,5 @@ export default function handler({ res }) {
     theme,
   });
 }
+
+export default withApiMetrics('/api/theme', handler);

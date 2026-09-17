@@ -1,9 +1,10 @@
 import createLogger from "utils/logger";
 import { getToggleable, setToggleState } from "utils/scaling/service";
+import { withApiMetrics } from "utils/metrics/api";
 
 const logger = createLogger("scaling");
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const { namespace, name } = req.query;
   if (!namespace || !name || Array.isArray(namespace) || Array.isArray(name)) {
     return res.status(400).json({ error: "namespace and name required" });
@@ -37,3 +38,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: message });
   }
 }
+
+export default withApiMetrics('/api/scaling/[namespace]/[name]', handler);

@@ -1,6 +1,7 @@
 import si from "systeminformation";
 
 import createLogger from "utils/logger";
+import { withApiMetrics } from "utils/metrics/api";
 
 const logger = createLogger("resources");
 
@@ -19,7 +20,7 @@ function isMissingNetworkStat(networkData, interfaceName) {
   );
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const { type, target, interfaceName = "default" } = req.query;
 
   if (type === "cpu") {
@@ -114,3 +115,5 @@ export default async function handler(req, res) {
     error: "invalid type",
   });
 }
+
+export default withApiMetrics('/api/widgets/resources', handler);

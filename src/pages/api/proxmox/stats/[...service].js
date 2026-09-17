@@ -1,13 +1,14 @@
 import { getProxmoxConfig } from "utils/config/proxmox";
 import createLogger from "utils/logger";
 import { httpProxy } from "utils/proxy/http";
+import { withApiMetrics } from "utils/metrics/api";
 
 const logger = createLogger("proxmoxStatsService");
 const VALID_VM_TYPES = new Set(["qemu", "lxc"]);
 const VALID_NODE = /^[A-Za-z0-9._-]+$/;
 const VALID_VMID = /^\d+$/;
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const { service, type: vmType } = req.query;
 
   const [node, vmid] = service || [];
@@ -103,3 +104,5 @@ export default async function handler(req, res) {
     });
   }
 }
+
+export default withApiMetrics('/api/proxmox/stats/[...service]', handler);

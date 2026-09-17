@@ -1,9 +1,10 @@
 import createLogger from "utils/logger";
 import { refreshAll, refreshOne } from "utils/mcp/cache";
+import { withApiMetrics } from "utils/metrics/api";
 
 const logger = createLogger("mcpMonitor");
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ error: "method not allowed" });
   }
@@ -25,3 +26,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: String(err.message || err) });
   }
 }
+
+export default withApiMetrics('/api/mcpMonitor', handler);

@@ -1,4 +1,5 @@
-export default async function handler(req, res) {
+import { withApiMetrics } from "utils/metrics/api";
+async function handler(req, res) {
   try {
     await res.revalidate("/");
     return res.json({ revalidated: true });
@@ -6,3 +7,5 @@ export default async function handler(req, res) {
     return res.status(500).send("Error revalidating");
   }
 }
+
+export default withApiMetrics('/api/revalidate', handler);

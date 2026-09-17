@@ -4,6 +4,7 @@ import { formatApiCall } from "utils/proxy/api-helpers";
 import genericProxyHandler from "utils/proxy/handlers/generic";
 import calendarProxyHandler from "widgets/calendar/proxy";
 import widgets from "widgets/widgets";
+import { withApiMetrics } from "utils/metrics/api";
 
 const logger = createLogger("servicesProxy");
 
@@ -41,7 +42,7 @@ function getSafeSegments(rawSegments, allowedSegments) {
   return safeSegments;
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   try {
     const { service, group, index } = req.query;
     const serviceWidget = await getServiceWidget(group, service, index);
@@ -144,3 +145,5 @@ export default async function handler(req, res) {
     return res.status(500).send({ error: "Unexpected error" });
   }
 }
+
+export default withApiMetrics('/api/services/proxy', handler);

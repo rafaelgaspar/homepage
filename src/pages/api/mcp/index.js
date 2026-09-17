@@ -4,13 +4,14 @@ import { authOptions } from "pages/api/auth/[...nextauth]";
 import { isAuthEnabled } from "utils/env";
 import createLogger from "utils/logger";
 import { handleMcpRequest, mcpEnabled, mcpTokenAuthorized, mcpTokenConfigError } from "utils/mcp/homepage-mcp";
+import { withApiMetrics } from "utils/metrics/api";
 
 async function hasHomepageSession(req, res) {
   if (!isAuthEnabled()) return false;
   return Boolean(await getServerSession(req, res, authOptions));
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (!mcpEnabled()) {
     return res.status(404).end("Not Found");
   }
@@ -38,3 +39,5 @@ export default async function handler(req, res) {
 
   return res.status(200).json(response);
 }
+
+export default withApiMetrics('/api/mcp', handler);

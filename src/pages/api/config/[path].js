@@ -3,6 +3,7 @@ import path from "path";
 
 import { CONF_DIR } from "utils/config/config";
 import createLogger from "utils/logger";
+import { withApiMetrics } from "utils/metrics/api";
 
 const logger = createLogger("configFileService");
 
@@ -10,7 +11,7 @@ const logger = createLogger("configFileService");
  * @param {import("next").NextApiRequest} req
  * @param {import("next").NextApiResponse} res
  */
-export default async function handler(req, res) {
+async function handler(req, res) {
   const { path: relativePath } = req.query;
 
   // only two supported files, for now
@@ -32,3 +33,5 @@ export default async function handler(req, res) {
     return res.status(500).end("Internal Server Error");
   }
 }
+
+export default withApiMetrics('/api/config/[path]', handler);

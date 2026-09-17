@@ -3,6 +3,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 
 import checkAndCopyConfig, { CONF_DIR } from "utils/config/config";
+import { withApiMetrics } from "utils/metrics/api";
 
 const configs = ["docker.yaml", "settings.yaml", "services.yaml", "bookmarks.yaml", "widgets.yaml"];
 
@@ -12,7 +13,7 @@ function hash(buffer) {
   return hashSum.digest("hex");
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const hashes = configs.map((config) => {
     checkAndCopyConfig(config);
     const configYaml = join(CONF_DIR, config);
@@ -28,3 +29,5 @@ export default async function handler(req, res) {
     hash: combinedHash,
   });
 }
+
+export default withApiMetrics('/api/hash', handler);

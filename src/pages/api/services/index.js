@@ -1,5 +1,8 @@
 import { servicesResponse } from "utils/config/api-response";
+import { withApiMetrics } from "utils/metrics/api";
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   res.send(await servicesResponse());
 }
+
+export default withApiMetrics('/api/services', handler);
