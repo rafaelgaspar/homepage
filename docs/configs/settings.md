@@ -544,6 +544,23 @@ You can disable checking for new versions from GitHub (enabled by default) with:
 disableUpdateCheck: true
 ```
 
+## Prometheus metrics
+
+Expose Node/process metrics on a **dedicated HTTP port** (not the main Homepage UI/API port). Disabled by default.
+
+When disabled, no metrics listener is started. When enabled, Prometheus scrapes e.g. `http://<pod-ip>:9090/metrics` without Homepage session auth.
+
+With `metrics.enabled`, each `pages/api/*` handler records **`homepage_http_request_duration_seconds`** (histogram) with labels **`method`**, **`route`** (stable template such as `/api/kubernetes/stats/[...service]`), and **`status_code`**.
+
+```yaml
+metrics:
+  enabled: true
+  port: 9090 # optional, default 9090
+  path: /metrics # optional, default /metrics
+```
+
+Wire a Service / PodMonitor (or equivalent) to the metrics port in your deployment; the main `:3000` HTTPRoute does not expose these series.
+
 ## Log Path
 
 By default the homepage logfile is written to the a `logs` subdirectory of the `config` folder. In order to customize this path, you can set the `logpath` setting. A `logs` folder will be created in that location where the logfile will be written.
