@@ -1,10 +1,8 @@
 import { loadMcpProbes } from "utils/mcp/service";
 import { probeOne } from "utils/mcp/client";
-import {
-  MCP_MONITOR_REFRESH_MS,
-  MCP_PROBE_CONCURRENCY,
-  getMcpCacheTtlMs,
-} from "utils/mcp/timing";
+
+const CACHE_TTL_MS = 30000;
+const PROBE_CONCURRENCY = 2;
 
 const cache = { at: 0, byId: Object.create(null) };
 let refreshInFlight = null;
@@ -35,7 +33,7 @@ async function runRefresh(probes) {
     async (probe) => {
       cache.byId[probe.id] = await probeOne(probe);
     },
-    MCP_PROBE_CONCURRENCY,
+    PROBE_CONCURRENCY,
   );
   cache.at = Date.now();
   return Object.values(cache.byId);
@@ -49,20 +47,20 @@ function hasCachedResults() {
   return cachedResults().length > 0;
 }
 
-function cacheAgeMs(now = Date.now()) {
-  return cache.at ? now - cache.at : Number.POSITIVE_INFINITY;
-}
-
 export async function refreshAll(force = false) {
-  const probes = await loadMcpProbes();
-  const age = cacheAgeMs();
-  const serveUntilMs = getMcpCacheTtlMs(probes.length);
-  const dueForRefresh = !hasCachedResults() || age >= MCP_MONITOR_REFRESH_MS;
+  const now = Date.now();
+  const stale = !hasCachedResults() || now - cache.at >= CACHE_TTL_MS;
 
-  if ((force || dueForRefresh) && !refreshInFlight) {
-    refreshInFlight = runRefresh(probes).finally(() => {
-      refreshInFlight = null;
-    });
+  if (!force && !stale) {
+    return cachedResults();
+  }
+
+  if (!refreshInFlight) {
+    refreshInFlight = loadMcpProbes()
+      .then((probes) => runRefresh(probes))
+      .finally(() => {
+        refreshInFlight = null;
+      });
   }
 
   if (force) {
@@ -70,16 +68,7 @@ export async function refreshAll(force = false) {
     return cachedResults();
   }
 
-  if (!hasCachedResults()) {
-    return [];
-  }
-
-  // Keep serving the last snapshot through refresh interval + worst-case sweep.
-  if (age < serveUntilMs || refreshInFlight) {
-    return cachedResults();
-  }
-
-  return cachedResults();
+  return hasCachedResults() ? cachedResults() : [];
 }
 
 export async function refreshOne(id, force = false) {
@@ -88,9 +77,7 @@ export async function refreshOne(id, force = false) {
   if (!probe) return null;
 
   const cached = cache.byId[id];
-  const age = cacheAgeMs();
-
-  if (!force && cached && age < MCP_MONITOR_REFRESH_MS) {
+  if (!force && cached && Date.now() - cache.at < CACHE_TTL_MS) {
     return cached;
   }
 
