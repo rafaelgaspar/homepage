@@ -544,6 +544,46 @@ You can disable checking for new versions from GitHub (enabled by default) with:
 disableUpdateCheck: true
 ```
 
+## Prometheus metrics
+
+Expose Node/process metrics on a **dedicated HTTP port** (not the main Homepage UI/API port). Disabled by default.
+
+When disabled, no metrics listener is started. When enabled, Prometheus scrapes e.g. `http://<pod-ip>:9090/metrics` without Homepage session auth.
+
+With `metrics.enabled`, Homepage exposes app metrics on `:9090/metrics`. `/api/healthcheck` and `/api/readycheck` are excluded from HTTP metrics.
+
+## Readiness vs liveness
+
+- **`/api/healthcheck`** — process is up (liveness).
+- **`/api/readycheck`** — returns **503** while dashboard YAML on disk is mid-reload (Reloader/ConfigMap remount) or fails validation; **200** `ready` when `settings.yaml`, `services.yaml`, `widgets.yaml`, `bookmarks.yaml`, and `kubernetes.yaml` all parse. Point Kubernetes **readiness** at readycheck and **liveness** at healthcheck so traffic drops during partial config mounts.
+
+| Metric | Type | Labels | When |
+| --- | --- | --- | --- |
+| `homepage_http_request_duration_seconds` | histogram | `method`, `route`, `status_code` | pages/api response |
+| `homepage_http_requests_total` | counter | `method`, `route`, `status_code` | pages/api response |
+| `homepage_http_requests_in_flight` | gauge | `route` | pages/api in progress |
+| `homepage_http_response_bytes` | histogram | `method`, `route`, `status_code` | pages/api response body size |
+| `homepage_http_slow_requests_total` | counter | `method`, `route`, `status_code` | pages/api slower than 5s |
+| `homepage_kubernetes_stats_requests_total` | counter | `outcome` | `/api/kubernetes/stats/*` (`success`, `no_pods`, `k8s_error`, `prometheus_error`) |
+| `homepage_prometheus_query_duration_seconds` | histogram | `target` | Thanos/Prometheus pod-usage queries |
+| `homepage_prometheus_query_failures_total` | counter | `reason` | failed pod-usage queries |
+| `homepage_mcp_probe_total` | counter | `service_id`, `result` | MCP tools/list probes (`ok`, `timeout`, `auth`, …) |
+| `homepage_mcp_probe_duration_seconds` | histogram | `service_id` | successful MCP probes |
+| `homepage_widget_upstream_duration_seconds` | histogram | `widget_type` | service widget proxy upstream |
+| `homepage_widget_upstream_errors_total` | counter | `widget_type`, `status_code` | upstream HTTP ≥400 |
+| `homepage_config_reload_total` | counter | `result` | config file mtime change (`success` / `failure`) |
+
+Default Node/process series (`process_*`, `nodejs_*`) come from `prom-client` when metrics are enabled.
+
+```yaml
+metrics:
+  enabled: true
+  port: 9090 # optional, default 9090
+  path: /metrics # optional, default /metrics
+```
+
+Wire a Service / PodMonitor (or equivalent) to the metrics port in your deployment; the main `:3000` HTTPRoute does not expose these series.
+
 ## Log Path
 
 By default the homepage logfile is written to the a `logs` subdirectory of the `config` folder. In order to customize this path, you can set the `logpath` setting. A `logs` folder will be created in that location where the logfile will be written.

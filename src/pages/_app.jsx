@@ -14,6 +14,10 @@ import { SettingsProvider } from "utils/contexts/settings";
 import { TabProvider } from "utils/contexts/tab";
 import { ThemeProvider } from "utils/contexts/theme";
 
+if (typeof window === "undefined") {
+  void import("utils/metrics/boot");
+}
+
 const tailwindSafelist = [
   // TODO: remove pending https://github.com/tailwindlabs/tailwindcss/pull/17147
   "backdrop-blur",
