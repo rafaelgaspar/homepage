@@ -10,6 +10,7 @@ vi.mock("utils/config/config", () => ({
 }));
 
 vi.mock("./registry", () => ({
+  registerAppMetrics: vi.fn(),
   metricsContentType: vi.fn(() => "text/plain; version=0.0.4; charset=utf-8"),
   renderMetrics: vi.fn(async () => "# TYPE process_cpu_user_seconds_total counter\n"),
 }));

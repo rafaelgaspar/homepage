@@ -14,6 +14,14 @@ export function getPodMetricsSettings() {
   };
 }
 
+function prometheusQueryMode(prometheusConfig) {
+  const mode = prometheusConfig?.queryMode;
+  if (mode === undefined || mode === null || mode === "") {
+    return undefined;
+  }
+  return mode;
+}
+
 /**
  * CPU/memory usage for pods, using metrics-server or Prometheus per kubernetes.yaml.
  */
@@ -24,25 +32,27 @@ export async function fetchPodUsage({ kc, namespace, podNames, logger }) {
     const url = prometheus?.url;
     if (!url) {
       logger.error("kubernetes.yaml podMetrics is prometheus but prometheus.url is not set");
-      return { cpu: 0, mem: 0 };
+      return { cpu: 0, mem: 0, statsOutcome: "prometheus_error" };
     }
     try {
-      return await fetchPodUsageFromPrometheus({
+      const usage = await fetchPodUsageFromPrometheus({
         namespace,
         podNames,
         url,
         queryTimeoutMs: prometheus?.queryTimeoutMs,
+        queryMode: prometheusQueryMode(prometheus),
       });
+      return { ...usage, statsOutcome: "success" };
     } catch (err) {
       logger.error("Error querying Prometheus for pod usage: %s", err.message || err);
-      return { cpu: 0, mem: 0 };
+      return { cpu: 0, mem: 0, statsOutcome: "prometheus_error" };
     }
   }
 
   if (provider !== POD_METRICS_METRICS_SERVER) {
     logger.error("kubernetes.yaml podMetrics %s is invalid; expected metricsServer or prometheus", provider);
-    return { cpu: 0, mem: 0 };
+    return { cpu: 0, mem: 0, statsOutcome: "prometheus_error" };
   }
 
-  return fetchPodUsageFromMetricsServer({ kc, namespace, podNames, logger });
+  return { ...(await fetchPodUsageFromMetricsServer({ kc, namespace, podNames, logger })), statsOutcome: "success" };
 }

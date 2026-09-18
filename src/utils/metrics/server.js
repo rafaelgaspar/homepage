@@ -1,5 +1,6 @@
 import http from "node:http";
 
+import { registerAppMetrics } from "./registry";
 import { getMetricsSettings, isMetricsEnabled } from "./settings";
 
 /** @type {import("node:http").Server | null} */
@@ -22,6 +23,9 @@ export function startMetricsServer({ port: portOverride, host = "0.0.0.0" } = {}
 
   const { port: configPort, path: metricsPath } = getMetricsSettings();
   const port = portOverride ?? configPort;
+
+  // Expose HELP/TYPE on /metrics before any pages/api traffic.
+  registerAppMetrics();
 
   server = http.createServer(async (req, res) => {
     try {

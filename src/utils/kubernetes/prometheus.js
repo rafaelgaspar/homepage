@@ -1,7 +1,22 @@
 import http from "node:http";
 import https from "node:https";
 
+import {
+  classifyPrometheusQueryFailure,
+  observePrometheusQueryDuration,
+  recordPrometheusQueryFailure,
+} from "utils/metrics/kubernetes";
+
 const DEFAULT_QUERY_TIMEOUT_MS = 15000;
+
+function prometheusTargetLabel(baseUrl) {
+  try {
+    const host = new URL(baseUrl).hostname;
+    return host.split(".")[0] || "prometheus";
+  } catch {
+    return "prometheus";
+  }
+}
 
 /** Escape a pod name for use inside PromQL `pod=~"..."` alternation. */
 export function escapePromRegexLiteral(value) {
@@ -75,11 +90,41 @@ function scalarFromInstantResponse(payload) {
   return Number.isFinite(n) ? n : 0;
 }
 
+export const PROMETHEUS_QUERY_RECORDING_RULES = "recordingRules";
+export const PROMETHEUS_QUERY_CADVISOR = "cadvisor";
+
+/**
+ * PromQL for pod CPU/memory usage. Default `recordingRules` matches kube-prometheus
+ * pre-aggregates and works against Thanos Query (raw cAdvisor + rate() is often empty or slow there).
+ */
+export function buildPodUsageQueries({ namespace, podRegex, queryMode = PROMETHEUS_QUERY_RECORDING_RULES }) {
+  const podSelector = `{namespace="${escapePrometheusLabelValue(namespace)}",pod=~"${podRegex}"}`;
+
+  if (queryMode === PROMETHEUS_QUERY_CADVISOR) {
+    // kube-prometheus / mixin style: exclude pause; do not use container!="" (drops missing label).
+    const cadvisorSelector = `{namespace="${escapePrometheusLabelValue(namespace)}",pod=~"${podRegex}",container!="POD",image!=""}`;
+    return {
+      cpuQuery: `sum(rate(container_cpu_usage_seconds_total${cadvisorSelector}[2m]))`,
+      memQuery: `sum(container_memory_working_set_bytes${cadvisorSelector})`,
+    };
+  }
+
+  return {
+    cpuQuery: `sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate${podSelector})`,
+    memQuery: `sum(node_namespace_pod_container:container_memory_working_set_bytes${podSelector})`,
+  };
+}
+
 /**
  * Sum CPU (cores) and memory (bytes) for pods selected by name in a namespace.
- * Uses cAdvisor series scraped by kube-prometheus (same selectors as listNamespacedPod).
  */
-export async function fetchPodUsageFromPrometheus({ namespace, podNames, url, queryTimeoutMs }) {
+export async function fetchPodUsageFromPrometheus({
+  namespace,
+  podNames,
+  url,
+  queryTimeoutMs,
+  queryMode = PROMETHEUS_QUERY_RECORDING_RULES,
+}) {
   if (!url) {
     throw new Error("prometheus url is required");
   }
@@ -90,19 +135,26 @@ export async function fetchPodUsageFromPrometheus({ namespace, podNames, url, qu
     return { cpu: 0, mem: 0 };
   }
 
-  const metricSelector = `{namespace="${escapePrometheusLabelValue(namespace)}",pod=~"${podRegex}",container!="",container!="POD"}`;
-  const cpuQuery = `sum(rate(container_cpu_usage_seconds_total${metricSelector}[2m]))`;
-  const memQuery = `sum(container_memory_working_set_bytes${metricSelector})`;
+  const { cpuQuery, memQuery } = buildPodUsageQueries({ namespace, podRegex, queryMode });
+  const target = prometheusTargetLabel(url);
+  const queryStart = process.hrtime.bigint();
 
-  const [cpuPayload, memPayload] = await Promise.all([
-    httpGetJson(promQueryUrl(url, cpuQuery).href, timeoutMs),
-    httpGetJson(promQueryUrl(url, memQuery).href, timeoutMs),
-  ]);
+  try {
+    const [cpuPayload, memPayload] = await Promise.all([
+      httpGetJson(promQueryUrl(url, cpuQuery).href, timeoutMs),
+      httpGetJson(promQueryUrl(url, memQuery).href, timeoutMs),
+    ]);
 
-  return {
-    cpu: scalarFromInstantResponse(cpuPayload),
-    mem: scalarFromInstantResponse(memPayload),
-  };
+    observePrometheusQueryDuration(Number(process.hrtime.bigint() - queryStart) / 1e9, target);
+
+    return {
+      cpu: scalarFromInstantResponse(cpuPayload),
+      mem: scalarFromInstantResponse(memPayload),
+    };
+  } catch (err) {
+    recordPrometheusQueryFailure(classifyPrometheusQueryFailure(err));
+    throw err;
+  }
 }
 
 /** Escape a label value for PromQL / metrics label matchers. */
