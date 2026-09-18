@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const { startMetricsServer } = vi.hoisted(() => ({
+  startMetricsServer: vi.fn(),
+}));
+
+vi.mock("utils/metrics/server", () => ({
+  startMetricsServer,
+}));
+
 describe("instrumentation", () => {
   const originalEnv = process.env;
 
@@ -26,6 +34,7 @@ describe("instrumentation", () => {
 
     expect(process.env.NEXTAUTH_SECRET).toBe("secret");
     expect(process.env.NEXTAUTH_URL).toBe("https://homepage.example");
+    expect(startMetricsServer).toHaveBeenCalled();
   });
 
   it("does not override explicitly configured NextAuth envs", async () => {

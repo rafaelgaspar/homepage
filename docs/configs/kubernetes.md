@@ -56,9 +56,6 @@ podMetrics: prometheus
 prometheus:
   url: http://prometheus.example:9090
   queryTimeoutMs: 15000 # optional, milliseconds
-  # optional: recordingRules (default) or cadvisor — use cadvisor only when querying
-  # Prometheus directly with raw cAdvisor; Thanos Query needs recordingRules.
-  queryMode: recordingRules
 ```
 
 Limits are still read from pod resource specs via the Kubernetes API. Only the usage series source changes.
