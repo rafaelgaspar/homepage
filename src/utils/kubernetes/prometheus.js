@@ -75,41 +75,11 @@ function scalarFromInstantResponse(payload) {
   return Number.isFinite(n) ? n : 0;
 }
 
-export const PROMETHEUS_QUERY_RECORDING_RULES = "recordingRules";
-export const PROMETHEUS_QUERY_CADVISOR = "cadvisor";
-
-/**
- * PromQL for pod CPU/memory usage. Default `recordingRules` matches kube-prometheus
- * pre-aggregates and works against Thanos Query (raw cAdvisor + rate() is often empty or slow there).
- */
-export function buildPodUsageQueries({ namespace, podRegex, queryMode = PROMETHEUS_QUERY_RECORDING_RULES }) {
-  const podSelector = `{namespace="${escapePrometheusLabelValue(namespace)}",pod=~"${podRegex}"}`;
-
-  if (queryMode === PROMETHEUS_QUERY_CADVISOR) {
-    // kube-prometheus / mixin style: exclude pause; do not use container!="" (drops missing label).
-    const cadvisorSelector = `{namespace="${escapePrometheusLabelValue(namespace)}",pod=~"${podRegex}",container!="POD",image!=""}`;
-    return {
-      cpuQuery: `sum(rate(container_cpu_usage_seconds_total${cadvisorSelector}[2m]))`,
-      memQuery: `sum(container_memory_working_set_bytes${cadvisorSelector})`,
-    };
-  }
-
-  return {
-    cpuQuery: `sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate${podSelector})`,
-    memQuery: `sum(node_namespace_pod_container:container_memory_working_set_bytes${podSelector})`,
-  };
-}
-
 /**
  * Sum CPU (cores) and memory (bytes) for pods selected by name in a namespace.
+ * Uses cAdvisor series scraped by kube-prometheus (same selectors as listNamespacedPod).
  */
-export async function fetchPodUsageFromPrometheus({
-  namespace,
-  podNames,
-  url,
-  queryTimeoutMs,
-  queryMode = PROMETHEUS_QUERY_RECORDING_RULES,
-}) {
+export async function fetchPodUsageFromPrometheus({ namespace, podNames, url, queryTimeoutMs }) {
   if (!url) {
     throw new Error("prometheus url is required");
   }
@@ -120,7 +90,9 @@ export async function fetchPodUsageFromPrometheus({
     return { cpu: 0, mem: 0 };
   }
 
-  const { cpuQuery, memQuery } = buildPodUsageQueries({ namespace, podRegex, queryMode });
+  const metricSelector = `{namespace="${escapePrometheusLabelValue(namespace)}",pod=~"${podRegex}",container!="",container!="POD"}`;
+  const cpuQuery = `sum(rate(container_cpu_usage_seconds_total${metricSelector}[2m]))`;
+  const memQuery = `sum(container_memory_working_set_bytes${metricSelector})`;
 
   const [cpuPayload, memPayload] = await Promise.all([
     httpGetJson(promQueryUrl(url, cpuQuery).href, timeoutMs),

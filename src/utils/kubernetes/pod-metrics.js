@@ -14,14 +14,6 @@ export function getPodMetricsSettings() {
   };
 }
 
-function prometheusQueryMode(prometheusConfig) {
-  const mode = prometheusConfig?.queryMode;
-  if (mode === undefined || mode === null || mode === "") {
-    return undefined;
-  }
-  return mode;
-}
-
 /**
  * CPU/memory usage for pods, using metrics-server or Prometheus per kubernetes.yaml.
  */
@@ -40,7 +32,6 @@ export async function fetchPodUsage({ kc, namespace, podNames, logger }) {
         podNames,
         url,
         queryTimeoutMs: prometheus?.queryTimeoutMs,
-        queryMode: prometheusQueryMode(prometheus),
       });
     } catch (err) {
       logger.error("Error querying Prometheus for pod usage: %s", err.message || err);

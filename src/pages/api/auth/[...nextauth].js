@@ -5,6 +5,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 
 import { applyNextAuthEnv, isAuthEnabled } from "utils/env";
 import createLogger from "utils/logger";
+import { withApiMetrics } from "utils/metrics/api";
 
 const MIN_AUTH_SECRET_LENGTH = 32;
 
@@ -163,7 +164,7 @@ export const authOptions = {
 
 const nextAuthHandler = NextAuth(authOptions);
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   // Just pass empty session if auth not enabled
   if (!authEnabled) {
     return res.status(200).json({});
@@ -171,3 +172,5 @@ export default async function handler(req, res) {
 
   return nextAuthHandler(req, res);
 }
+
+export default withApiMetrics("/api/auth/[...nextauth]", handler);
