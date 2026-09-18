@@ -88,6 +88,11 @@ describe("middleware", () => {
     expect(res.type).toBe("next");
   });
 
+  it("allows readycheck requests without auth when host is allowed", async () => {
+    const res = await middleware(createReq("localhost:3000", "http://localhost:3000/api/readycheck"));
+    expect(res.status).not.toBe(307);
+  });
+
   it("allows healthcheck requests without auth when host is allowed", async () => {
     process.env.HOMEPAGE_AUTH_ENABLED = "true";
     process.env.HOMEPAGE_AUTH_SECRET = "secret";
