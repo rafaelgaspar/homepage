@@ -1,9 +1,10 @@
 import { CoreV1Api, Metrics } from "@kubernetes/client-node";
 
-import { withApiMetrics } from "utils/metrics/api";
 import { getKubeConfig } from "../../../utils/config/kubernetes";
 import { parseCpu, parseMemory } from "../../../utils/kubernetes/utils";
 import createLogger from "../../../utils/logger";
+
+import { withApiMetrics } from "utils/metrics/api";
 
 const logger = createLogger("widget");
 

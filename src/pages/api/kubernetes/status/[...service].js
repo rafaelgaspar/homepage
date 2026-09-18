@@ -1,9 +1,10 @@
 import { CoreV1Api } from "@kubernetes/client-node";
 
-import { withApiMetrics } from "utils/metrics/api";
 import { getKubeConfig } from "../../../../utils/config/kubernetes";
 import createLogger from "../../../../utils/logger";
 import { getToggleable } from "../../../../utils/scaling/service";
+
+import { withApiMetrics } from "utils/metrics/api";
 
 const logger = createLogger("kubernetesStatusService");
 

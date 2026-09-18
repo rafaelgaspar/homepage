@@ -1,7 +1,8 @@
-import { withApiMetrics } from "utils/metrics/api";
 import { getSettings } from "../../../utils/config/config";
 import createLogger from "../../../utils/logger";
 import { httpProxy } from "../../../utils/proxy/http";
+
+import { withApiMetrics } from "utils/metrics/api";
 
 const logger = createLogger("longhorn");
 

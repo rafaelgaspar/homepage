@@ -12,7 +12,7 @@ export function configureUndiciProxyTimeout() {
   }
 
   try {
-    // eslint-disable-next-line import/no-extraneous-dependencies
+     
     const undici = require("undici");
     if (undici?.setGlobalDispatcher && undici.Agent) {
       undici.setGlobalDispatcher(
