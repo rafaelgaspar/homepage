@@ -2,6 +2,7 @@ import classNames from "classnames";
 import { useContext, useState } from "react";
 
 import KubernetesStatus from "./kubernetes-status";
+import McpStatus from "./mcp-status";
 import Ping from "./ping";
 import ProxmoxStatus from "./proxmox-status";
 import SiteMonitor from "./site-monitor";
@@ -10,12 +11,14 @@ import Widget from "./widget";
 
 import ResolvedIcon from "components/resolvedicon";
 import { SettingsContext } from "utils/contexts/settings";
+import { isMcpService } from "utils/mcp/detect";
 import Docker from "widgets/docker/component";
 import Kubernetes from "widgets/kubernetes/component";
 import ProxmoxVM from "widgets/proxmoxvm/component";
 
 export default function Item({ service, groupName, useEqualHeights }) {
-  const hasLink = service.href && service.href !== "#";
+  const mcpCard = isMcpService(service);
+  const hasLink = service.href && service.href !== "#" && !mcpCard;
   const { settings } = useContext(SettingsContext);
   const showStats = service.showStats === false ? false : settings.showStats;
   const statusStyle = service.statusStyle !== undefined ? service.statusStyle : settings.statusStyle;
@@ -90,17 +93,24 @@ export default function Item({ service, groupName, useEqualHeights }) {
               statusStyle === "dot" ? "gap-0" : "gap-2 mr-2"
             } z-10 service-tags`}
           >
-            {service.ping && (
+            {service.ping && !mcpCard && (
               <div className="shrink-0 flex items-center justify-center service-tag service-ping">
                 <Ping groupName={groupName} serviceName={service.name} style={statusStyle} />
                 <span className="sr-only">Ping status</span>
               </div>
             )}
 
-            {service.siteMonitor && (
+            {service.siteMonitor && !mcpCard && (
               <div className="shrink-0 flex items-center justify-center service-tag service-site-monitor">
                 <SiteMonitor groupName={groupName} serviceName={service.name} style={statusStyle} />
                 <span className="sr-only">Site monitor status</span>
+              </div>
+            )}
+
+            {mcpCard && (
+              <div className="shrink-0 flex items-center justify-center service-tag service-mcp-status">
+                <McpStatus service={service} style={statusStyle} />
+                <span className="sr-only">MCP status</span>
               </div>
             )}
 
