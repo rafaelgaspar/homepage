@@ -1,11 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
-  MCP_MONITOR_REFRESH_MS,
-  getMcpCacheTtlMs,
-  getMcpSingleProbeCacheTtlMs,
-  maxSweepDurationMs,
-} from "./timing";
+import { MCP_MONITOR_REFRESH_MS, getMcpCacheTtlMs, getMcpSingleProbeCacheTtlMs, maxSweepDurationMs } from "./timing";
 
 describe("utils/mcp/timing", () => {
   afterEach(() => {
