@@ -1,27 +1,39 @@
 import { t } from "i18next";
 import useSWR from "swr";
 
-export default function KubernetesStatus({ service, style }) {
+import { useServiceScaling } from "utils/scaling/client";
+
+function k8sStatusUrl(service) {
   const podSelectorString = service.podSelector !== undefined ? `podSelector=${service.podSelector}` : "";
-  const { data, error } = useSWR(`/api/kubernetes/status/${service.namespace}/${service.app}?${podSelectorString}`);
+  return `/api/kubernetes/status/${service.namespace}/${service.app}?${podSelectorString}`;
+}
+
+export default function KubernetesStatus({ service, style }) {
+  const { scaledIdle } = useServiceScaling(service);
+  const statusUrl = scaledIdle ? null : k8sStatusUrl(service);
+  const { data, error } = useSWR(statusUrl);
 
   let statusLabel = t("docker.unknown");
   let statusTitle = "";
   let backgroundClass = "px-1.5 py-0.5 bg-theme-500/10 dark:bg-theme-900/50";
   let colorClass = "text-black/20 dark:text-white/40 opacity-20";
 
-  if (error) {
+  if (scaledIdle) {
+    statusTitle = "scaled down";
+    statusLabel = statusTitle;
+  } else if (error) {
     statusTitle = t("docker.error");
     statusLabel = statusTitle;
     colorClass = "text-rose-500/80";
   } else if (data) {
-    if (data.status === "running") {
+    if (data.status === "idle") {
+      statusTitle = "scaled down";
+      statusLabel = statusTitle;
+    } else if (data.status === "running") {
       statusTitle = data.health ?? data.status;
       statusLabel = statusTitle;
       colorClass = "text-emerald-500/80";
-    }
-
-    if (data.status === "not found" || data.status === "down" || data.status === "partial") {
+    } else if (data.status === "not found" || data.status === "down" || data.status === "partial") {
       statusTitle = data.status;
       statusLabel = statusTitle;
       colorClass = "text-orange-400/50 dark:text-orange-400/80";

@@ -3,10 +3,19 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { useSWR } = vi.hoisted(() => ({ useSWR: vi.fn() }));
+const { useSWR, useServiceScaling } = vi.hoisted(() => ({
+  useSWR: vi.fn(),
+  useServiceScaling: vi.fn(),
+}));
 
 vi.mock("swr", () => ({
   default: useSWR,
+}));
+
+vi.mock("utils/scaling/client", () => ({
+  useServiceScaling,
+  SCALING_LIST_KEY: "/api/scaling",
+  scalingItemKey: (ns, name) => `/api/scaling/${ns}/${name}`,
 }));
 
 vi.mock("i18next", () => ({
@@ -18,14 +27,23 @@ import KubernetesStatus from "./kubernetes-status";
 describe("components/services/kubernetes-status", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useServiceScaling.mockReturnValue({ scaledIdle: false });
+    useSWR.mockReturnValue({ data: undefined, error: undefined });
   });
 
   it("includes podSelector in the request when provided", () => {
-    useSWR.mockReturnValue({ data: undefined, error: undefined });
-
     render(<KubernetesStatus service={{ namespace: "ns", app: "app", podSelector: "x=y" }} />);
 
     expect(useSWR).toHaveBeenCalledWith("/api/kubernetes/status/ns/app?podSelector=x=y");
+  });
+
+  it("skips kubernetes status polling when scaled idle", () => {
+    useServiceScaling.mockReturnValue({ scaledIdle: true });
+
+    render(<KubernetesStatus service={{ namespace: "ns", app: "app" }} style="dot" />);
+
+    expect(useSWR).toHaveBeenCalledWith(null);
+    expect(screen.getByTitle("scaled down")).toBeInTheDocument();
   });
 
   it("renders the health/status label when running", () => {
@@ -59,7 +77,6 @@ describe("components/services/kubernetes-status", () => {
     const { container } = render(<KubernetesStatus service={{ namespace: "ns", app: "app" }} />);
 
     expect(screen.getByText("down")).toBeInTheDocument();
-    // Ensure the status is used as a tooltip/title too.
     expect(container.querySelector(".k8s-status")?.getAttribute("title")).toBe("down");
   });
 });
