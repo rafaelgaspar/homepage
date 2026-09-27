@@ -81,7 +81,7 @@ describe("pages/api/config/[path]", () => {
     await handler(req, res);
 
     expect(res.statusCode).toBe(500);
-    expect(res.body).toBe("Internal Server Error");
+    expect(Buffer.isBuffer(res.body) ? res.body.toString() : res.body).toBe("Internal Server Error");
     expect(logger.error).toHaveBeenCalled();
   });
 });

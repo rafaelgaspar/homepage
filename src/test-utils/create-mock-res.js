@@ -30,11 +30,7 @@ export default function createMockRes() {
 
   res.end = vi.fn((body) => {
     if (body !== undefined && body !== null) {
-      if (typeof body === "string" || Buffer.isBuffer(body)) {
-        res.body = body;
-      } else {
-        res.write(body);
-      }
+      res.write(body);
     }
     if (typeof res._onFinish === "function") {
       res._onFinish();
@@ -46,13 +42,8 @@ export default function createMockRes() {
     if (event === "finish") {
       res._onFinish = cb;
     }
-    if (event === "close") {
-      res._onClose = cb;
-    }
     return res;
   });
-
-  res.once = vi.fn((event, cb) => res.on(event, cb));
 
   res.setHeader = vi.fn((key, value) => {
     res.headers[key] = value;

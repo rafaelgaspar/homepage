@@ -1,8 +1,9 @@
-import { CoreV1Api, Metrics } from "@kubernetes/client-node";
+import { CoreV1Api } from "@kubernetes/client-node";
 
-import { getKubeConfig } from "../../../../utils/config/kubernetes";
-import { parseCpu, parseMemory } from "../../../../utils/kubernetes/utils";
-import createLogger from "../../../../utils/logger";
+import { getKubeConfig } from "utils/config/kubernetes";
+import { fetchPodUsage } from "utils/kubernetes/pod-metrics";
+import { parseCpu, parseMemory } from "utils/kubernetes/utils";
+import createLogger from "utils/logger";
 
 const logger = createLogger("kubernetesStatsService");
 
@@ -28,7 +29,6 @@ export default async function handler(req, res) {
       return;
     }
     const coreApi = kc.makeApiClient(CoreV1Api);
-    const metricsApi = new Metrics(kc);
     const podsResponse = await coreApi
       .listNamespacedPod({
         namespace,
@@ -53,11 +53,11 @@ export default async function handler(req, res) {
       return;
     }
 
-    const podNames = new Set();
+    const podNames = [];
     let cpuLimit = 0;
     let memLimit = 0;
     pods.forEach((pod) => {
-      podNames.add(pod.metadata.name);
+      podNames.push(pod.metadata.name);
       pod.spec.containers.forEach((container) => {
         if (container?.resources?.limits?.cpu) {
           cpuLimit += parseCpu(container?.resources?.limits?.cpu);
@@ -68,36 +68,17 @@ export default async function handler(req, res) {
       });
     });
 
-    const namespaceMetrics = await metricsApi
-      .getPodMetrics(namespace)
-      .then((response) => response.items)
-      .catch((err) => {
-        // 404 generally means that the metrics have not been populated yet
-        if (err.statusCode !== 404) {
-          logger.error("Error getting pod metrics: %d %s %s", err.statusCode, err.body, err.response);
-        }
-        return null;
-      });
+    const usage = await fetchPodUsage({ kc, namespace, podNames, logger });
 
     const stats = {
-      mem: 0,
-      cpu: 0,
+      mem: usage.mem,
+      cpu: usage.cpu,
+      cpuLimit,
+      memLimit,
+      cpuUsage: cpuLimit ? 100 * (usage.cpu / cpuLimit) : 0,
+      memUsage: memLimit ? 100 * (usage.mem / memLimit) : 0,
     };
 
-    if (namespaceMetrics) {
-      const podMetrics = namespaceMetrics.filter((item) => podNames.has(item.metadata.name));
-      podMetrics.forEach((metrics) => {
-        metrics.containers.forEach((container) => {
-          stats.mem += parseMemory(container.usage.memory);
-          stats.cpu += parseCpu(container.usage.cpu);
-        });
-      });
-    }
-
-    stats.cpuLimit = cpuLimit;
-    stats.memLimit = memLimit;
-    stats.cpuUsage = cpuLimit ? 100 * (stats.cpu / cpuLimit) : 0;
-    stats.memUsage = memLimit ? 100 * (stats.mem / memLimit) : 0;
     res.status(200).json({
       stats,
     });
