@@ -1,1 +1,19 @@
 /* Optional custom CSS bundled at build time via src/custom/css/. */
+
+/* Scaling toggle: Safari hit-tests flex-1 title links under the switch. */
+.service-card a.service-title-text.homepage-scaling-title-link {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  max-width: calc(100% - 5.75rem) !important;
+  box-sizing: border-box !important;
+  pointer-events: none;
+}
+
+.service-card a.service-title-text.homepage-scaling-title-link > * {
+  pointer-events: auto;
+}
+
+.service-card:has(.homepage-scaling-toggle) .service-title {
+  padding-right: 5.75rem !important;
+  box-sizing: border-box;
+}
