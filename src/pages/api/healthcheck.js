@@ -1,3 +1,5 @@
-export default function handler(req, res) {
+function handler(req, res) {
   res.send("up");
 }
+
+export default handler;

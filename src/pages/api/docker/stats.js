@@ -1,9 +1,10 @@
 import { getDockerStats } from "utils/docker/stats";
 import createLogger from "utils/logger";
+import { withApiMetrics } from "utils/metrics/api";
 
 const logger = createLogger("dockerStats");
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   try {
     const result = await getDockerStats(req.query.server);
 
@@ -19,3 +20,5 @@ export default async function handler(req, res) {
     });
   }
 }
+
+export default withApiMetrics("/api/docker/stats", handler);

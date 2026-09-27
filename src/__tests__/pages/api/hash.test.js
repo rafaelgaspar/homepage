@@ -20,6 +20,7 @@ vi.mock("fs", () => ({
 vi.mock("utils/config/config", () => ({
   default: checkAndCopyConfig,
   CONF_DIR,
+  getSettings: () => ({}),
 }));
 
 import handler from "pages/api/hash";

@@ -1,5 +1,6 @@
 import getServiceWidget from "utils/config/service-helpers";
 import createLogger from "utils/logger";
+import { recordWidgetUpstreamCall } from "utils/metrics/widget-upstream";
 import { formatApiCall, sanitizeErrorURL } from "utils/proxy/api-helpers";
 import { httpProxy } from "utils/proxy/http";
 import validateWidgetData from "utils/proxy/validate-widget-data";
@@ -49,7 +50,13 @@ export default async function genericProxyHandler(req, res, map) {
         }
       }
 
+      const upstreamStart = process.hrtime.bigint();
       const [status, contentType, data] = await httpProxy(url, params);
+      recordWidgetUpstreamCall(
+        widget.type,
+        status,
+        Number(process.hrtime.bigint() - upstreamStart) / 1e9,
+      );
 
       let resultData = data;
 

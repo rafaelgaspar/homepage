@@ -4,9 +4,11 @@ import { getKubeConfig } from "../../../../utils/config/kubernetes";
 import createLogger from "../../../../utils/logger";
 import { getToggleable } from "../../../../utils/scaling/service";
 
+import { withApiMetrics } from "utils/metrics/api";
+
 const logger = createLogger("kubernetesStatusService");
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const APP_LABEL = "app.kubernetes.io/name";
   const { service, podSelector } = req.query;
 
@@ -80,3 +82,5 @@ export default async function handler(req, res) {
     });
   }
 }
+
+export default withApiMetrics("/api/kubernetes/status/[...service]", handler);
