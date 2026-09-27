@@ -46,13 +46,13 @@ describe("utils/kubernetes/prometheus", () => {
     expect(cpuQuery).toContain('container!="POD"');
     expect(cpuQuery).toContain('image!=""');
     expect(cpuQuery).not.toContain('container!=""');
-    expect(memQuery).toContain('container_memory_working_set_bytes');
+    expect(memQuery).toContain("container_memory_working_set_bytes");
     expect(buildPodUsageQueries({ namespace: "x", podRegex: "y" }).cpuQuery).not.toContain(
       "container_cpu_usage_seconds_total",
     );
-    expect(buildPodUsageQueries({ namespace: "x", podRegex: "y", queryMode: PROMETHEUS_QUERY_RECORDING_RULES }).cpuQuery).toContain(
-      "sum_irate",
-    );
+    expect(
+      buildPodUsageQueries({ namespace: "x", podRegex: "y", queryMode: PROMETHEUS_QUERY_RECORDING_RULES }).cpuQuery,
+    ).toContain("sum_irate");
     expect(buildPodUsageQueries({ namespace: "x", podRegex: "y", queryMode: PROMETHEUS_QUERY_CADVISOR }).cpuQuery).toContain(
       "rate(container_cpu",
     );
