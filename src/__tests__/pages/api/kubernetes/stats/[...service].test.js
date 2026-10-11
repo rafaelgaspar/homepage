@@ -2,27 +2,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import createMockRes from "test-utils/create-mock-res";
 
-const { getKubeConfig, coreApi, metricsApi, MetricsCtor, logger } = vi.hoisted(() => {
-  const metricsApi = {
-    getPodMetrics: vi.fn(),
-  };
-
-  function MetricsCtor() {
-    return metricsApi;
-  }
-
-  return {
-    getKubeConfig: vi.fn(),
-    coreApi: { listNamespacedPod: vi.fn() },
-    metricsApi,
-    MetricsCtor,
-    logger: { error: vi.fn() },
-  };
-});
+const { getKubeConfig, coreApi, fetchPodUsage, logger } = vi.hoisted(() => ({
+  getKubeConfig: vi.fn(),
+  coreApi: { listNamespacedPod: vi.fn() },
+  fetchPodUsage: vi.fn(),
+  logger: { error: vi.fn() },
+}));
 
 vi.mock("@kubernetes/client-node", () => ({
   CoreV1Api: function CoreV1Api() {},
-  Metrics: MetricsCtor,
 }));
 
 vi.mock("utils/logger", () => ({
@@ -33,6 +21,10 @@ vi.mock("utils/config/kubernetes", () => ({
   getKubeConfig,
 }));
 
+vi.mock("utils/kubernetes/pod-metrics", () => ({
+  fetchPodUsage,
+}));
+
 import handler from "pages/api/kubernetes/stats/[...service]";
 
 describe("pages/api/kubernetes/stats/[...service]", () => {
@@ -41,6 +33,7 @@ describe("pages/api/kubernetes/stats/[...service]", () => {
     getKubeConfig.mockReturnValue({
       makeApiClient: () => coreApi,
     });
+    fetchPodUsage.mockResolvedValue({ cpu: 0, mem: 0 });
   });
 
   it("returns 400 when namespace/appName params are missing", async () => {
@@ -91,42 +84,9 @@ describe("pages/api/kubernetes/stats/[...service]", () => {
     });
   });
 
-  it("computes limits even when metrics are missing (404 from metrics server)", async () => {
-    coreApi.listNamespacedPod.mockResolvedValue({
-      items: [
-        {
-          metadata: { name: "pod-a" },
-          spec: {
-            containers: [
-              { resources: { limits: { cpu: "500m", memory: "1Gi" } } },
-              { resources: { limits: { cpu: "250m" } } },
-            ],
-          },
-        },
-      ],
-    });
-
-    metricsApi.getPodMetrics.mockRejectedValue({ statusCode: 404, body: "no metrics", response: "no metrics" });
-
-    const req = { query: { service: ["default", "app"] } };
-    const res = createMockRes();
-
-    await handler(req, res);
-
-    expect(res.statusCode).toBe(200);
-    expect(res.body).toEqual({
-      stats: {
-        mem: 0,
-        cpu: 0,
-        cpuLimit: 0.75,
-        memLimit: 1000000000,
-        cpuUsage: 0,
-        memUsage: 0,
-      },
-    });
-  });
-
-  it("logs when metrics lookup fails with a non-404 error and still returns computed limits", async () => {
+  it("delegates usage to fetchPodUsage with kubeconfig and pod names", async () => {
+    const kc = { makeApiClient: () => coreApi };
+    getKubeConfig.mockReturnValue(kc);
     coreApi.listNamespacedPod.mockResolvedValue({
       items: [
         {
@@ -137,23 +97,25 @@ describe("pages/api/kubernetes/stats/[...service]", () => {
         },
       ],
     });
-
-    metricsApi.getPodMetrics.mockRejectedValue({ statusCode: 500, body: "boom", response: "boom" });
+    fetchPodUsage.mockResolvedValue({ cpu: 0.25, mem: 512000000 });
 
     const req = { query: { service: ["default", "app"] } };
     const res = createMockRes();
 
     await handler(req, res);
 
-    expect(logger.error).toHaveBeenCalled();
+    expect(fetchPodUsage).toHaveBeenCalledWith({
+      kc,
+      namespace: "default",
+      podNames: ["pod-a"],
+      logger,
+    });
     expect(res.statusCode).toBe(200);
-    expect(res.body.stats.cpuLimit).toBe(0.5);
-    expect(res.body.stats.memLimit).toBe(1000000000);
-    expect(res.body.stats.cpu).toBe(0);
-    expect(res.body.stats.mem).toBe(0);
+    expect(res.body.stats.cpu).toBe(0.25);
+    expect(res.body.stats.mem).toBe(512000000);
   });
 
-  it("aggregates usage for matched pods and reports percent usage", async () => {
+  it("aggregates limits and percent usage for matched pods", async () => {
     coreApi.listNamespacedPod.mockResolvedValue({
       items: [
         {
@@ -166,23 +128,23 @@ describe("pages/api/kubernetes/stats/[...service]", () => {
         },
       ],
     });
-
-    metricsApi.getPodMetrics.mockResolvedValue({
-      items: [
-        // includes a non-selected pod, should be ignored
-        { metadata: { name: "other" }, containers: [{ usage: { cpu: "100m", memory: "10Mi" } }] },
-        {
-          metadata: { name: "pod-a" },
-          containers: [{ usage: { cpu: "250m", memory: "100Mi" } }, { usage: { cpu: "250m", memory: "100Mi" } }],
-        },
-        { metadata: { name: "pod-b" }, containers: [{ usage: { cpu: "500m", memory: "1Gi" } }] },
-      ],
-    });
+    fetchPodUsage.mockResolvedValue({ cpu: 1.0, mem: 1200000000 });
 
     const req = { query: { service: ["default", "app"], podSelector: "app=test" } };
     const res = createMockRes();
 
     await handler(req, res);
+
+    expect(coreApi.listNamespacedPod).toHaveBeenCalledWith({
+      namespace: "default",
+      labelSelector: "app=test",
+    });
+    expect(fetchPodUsage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        namespace: "default",
+        podNames: ["pod-a", "pod-b"],
+      }),
+    );
 
     const { stats } = res.body;
     expect(stats.cpuLimit).toBe(1.5);
