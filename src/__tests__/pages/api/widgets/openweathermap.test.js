@@ -72,7 +72,7 @@ describe("pages/api/widgets/openweathermap", () => {
 
   it("falls back to settings provider key when provider=openweathermap", async () => {
     getPrivateWidgetOptions.mockResolvedValueOnce({});
-    getSettings.mockReturnValueOnce({ providers: { openweathermap: "from-settings" } });
+    getSettings.mockReturnValue({ providers: { openweathermap: "from-settings" } });
     cachedRequest.mockResolvedValueOnce({ ok: true });
 
     const req = {
@@ -99,7 +99,7 @@ describe("pages/api/widgets/openweathermap", () => {
 
   it("returns 400 when provider=openweathermap but settings do not provide an api key", async () => {
     getPrivateWidgetOptions.mockResolvedValueOnce({});
-    getSettings.mockReturnValueOnce({ providers: {} });
+    getSettings.mockReturnValue({ providers: {} });
 
     const req = {
       query: {

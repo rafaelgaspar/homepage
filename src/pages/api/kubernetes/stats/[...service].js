@@ -4,10 +4,12 @@ import { getKubeConfig } from "utils/config/kubernetes";
 import { fetchPodUsage } from "utils/kubernetes/pod-metrics";
 import { parseCpu, parseMemory } from "utils/kubernetes/utils";
 import createLogger from "utils/logger";
+import { recordKubernetesStatsRequest } from "utils/metrics/kubernetes";
+import { withApiMetrics } from "utils/metrics/api";
 
 const logger = createLogger("kubernetesStatsService");
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const APP_LABEL = "app.kubernetes.io/name";
   const { service, podSelector } = req.query;
 
@@ -39,6 +41,7 @@ export default async function handler(req, res) {
         return null;
       });
     if (!podsResponse) {
+      recordKubernetesStatsRequest("k8s_error");
       res.status(500).send({
         error: "Error communicating with kubernetes",
       });
@@ -47,6 +50,7 @@ export default async function handler(req, res) {
     const pods = podsResponse.items;
 
     if (pods.length === 0) {
+      recordKubernetesStatsRequest("no_pods");
       res.status(404).send({
         error: `no pods found with namespace=${namespace} and labelSelector=${labelSelector}`,
       });
@@ -69,6 +73,7 @@ export default async function handler(req, res) {
     });
 
     const usage = await fetchPodUsage({ kc, namespace, podNames, logger });
+    recordKubernetesStatsRequest(usage.statsOutcome ?? "success");
 
     const stats = {
       mem: usage.mem,
@@ -84,8 +89,11 @@ export default async function handler(req, res) {
     });
   } catch (e) {
     if (e) logger.error(e);
+    recordKubernetesStatsRequest("k8s_error");
     res.status(500).send({
       error: "unknown error",
     });
   }
 }
+
+export default withApiMetrics("/api/kubernetes/stats/[...service]", handler);

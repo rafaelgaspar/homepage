@@ -28,7 +28,7 @@ describe("pages/api/widgets/longhorn", () => {
   });
 
   it("returns 400 when the longhorn URL isn't configured", async () => {
-    getSettings.mockReturnValueOnce({ providers: { longhorn: {} } });
+    getSettings.mockReturnValue({ providers: { longhorn: {} } });
 
     const req = { query: {} };
     const res = createMockRes();
@@ -40,7 +40,7 @@ describe("pages/api/widgets/longhorn", () => {
   });
 
   it("parses and aggregates node disk totals, including a total node", async () => {
-    getSettings.mockReturnValueOnce({
+    getSettings.mockReturnValue({
       providers: { longhorn: { url: "http://lh", username: "u", password: "p" } },
     });
 
@@ -93,7 +93,7 @@ describe("pages/api/widgets/longhorn", () => {
   });
 
   it("handles nodes without disks and logs non-200 responses", async () => {
-    getSettings.mockReturnValueOnce({ providers: { longhorn: { url: "http://lh" } } });
+    getSettings.mockReturnValue({ providers: { longhorn: { url: "http://lh" } } });
 
     const payload = { data: [{ id: "n1" }] };
     httpProxy.mockResolvedValueOnce([401, "application/json", JSON.stringify(payload)]);
@@ -112,7 +112,7 @@ describe("pages/api/widgets/longhorn", () => {
   });
 
   it("returns nodes=null when the API returns a null payload", async () => {
-    getSettings.mockReturnValueOnce({ providers: { longhorn: { url: "http://lh" } } });
+    getSettings.mockReturnValue({ providers: { longhorn: { url: "http://lh" } } });
     httpProxy.mockResolvedValueOnce([200, "application/json", "null"]);
 
     const req = { query: {} };

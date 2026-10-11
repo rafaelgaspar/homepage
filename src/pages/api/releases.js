@@ -1,10 +1,11 @@
 import { getSettings } from "utils/config/config";
 import createLogger from "utils/logger";
+import { withApiMetrics } from "utils/metrics/api";
 import { cachedRequest } from "utils/proxy/http";
 
 const logger = createLogger("releases");
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const settings = getSettings() ?? {};
   if (settings.hideVersion || settings.disableUpdateCheck) {
     return res.send([]);
@@ -18,3 +19,5 @@ export default async function handler(req, res) {
     return res.send([]);
   }
 }
+
+export default withApiMetrics("/api/releases", handler);
