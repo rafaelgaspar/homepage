@@ -27,7 +27,8 @@ export function shouldProbe(service) {
 }
 
 export function isMcpService(service) {
-  return shouldProbe(service);
+  // Browser payload strips mcpProbe; cleanServiceGroups leaves mcp: true.
+  return service?.mcp === true || shouldProbe(service);
 }
 
 export function buildProbe(service) {

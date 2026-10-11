@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildProbe, shouldProbe } from "./detect";
+import { buildProbe, isMcpService, shouldProbe } from "./detect";
 
 describe("utils/mcp/detect", () => {
   it("probes MCP cards by href", () => {
@@ -51,6 +51,22 @@ describe("utils/mcp/detect", () => {
   it("does not probe a UI href without mcpProbe.url", () => {
     expect(
       shouldProbe({
+        name: "IMAP MCP",
+        href: "https://imap.example.com",
+      }),
+    ).toBe(false);
+  });
+
+  it("treats a sanitized mcp flag as an MCP card", () => {
+    expect(
+      isMcpService({
+        name: "Memory MCP",
+        href: "https://memory.example.com",
+        mcp: true,
+      }),
+    ).toBe(true);
+    expect(
+      isMcpService({
         name: "IMAP MCP",
         href: "https://imap.example.com",
       }),

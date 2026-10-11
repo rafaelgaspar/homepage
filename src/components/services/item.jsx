@@ -12,7 +12,7 @@ import Widget from "./widget";
 
 import ResolvedIcon from "components/resolvedicon";
 import { SettingsContext } from "utils/contexts/settings";
-import { isMcpService } from "utils/mcp/detect";
+import { isMcpEndpoint, isMcpService } from "utils/mcp/detect";
 import Docker from "widgets/docker/component";
 import Kubernetes from "widgets/kubernetes/component";
 import ProxmoxVM from "widgets/proxmoxvm/component";
@@ -20,7 +20,7 @@ import ProxmoxVM from "widgets/proxmoxvm/component";
 export default function Item({ service, groupName, useEqualHeights }) {
   const mcpCard = isMcpService(service);
   const scalingCard = Boolean(service.namespace && service.app);
-  const hasLink = service.href && service.href !== "#" && !mcpCard;
+  const hasLink = Boolean(service.href && service.href !== "#" && !isMcpEndpoint(service.href));
   const { settings } = useContext(SettingsContext);
   const showStats = service.showStats === false ? false : settings.showStats;
   const statusStyle = service.statusStyle !== undefined ? service.statusStyle : settings.statusStyle;
