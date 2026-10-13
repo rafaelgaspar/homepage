@@ -10,6 +10,7 @@ import * as shvl from "utils/config/shvl";
 import { loadYaml } from "utils/config/yaml";
 import kubernetes from "utils/kubernetes/export";
 import createLogger from "utils/logger";
+import { shouldProbe } from "utils/mcp/detect";
 import { parseVersionForUrl } from "utils/proxy/api-helpers";
 
 const logger = createLogger("service-helpers");
@@ -267,6 +268,12 @@ export function cleanServiceGroups(groups) {
     name: serviceGroup.name,
     services: serviceGroup.services.map((service) => {
       const cleanedService = { ...service };
+      if (shouldProbe(service)) {
+        cleanedService.mcp = true;
+      } else {
+        delete cleanedService.mcp;
+      }
+      delete cleanedService.mcpProbe;
       if (cleanedService.showStats !== undefined) cleanedService.showStats = JSON.parse(cleanedService.showStats);
       if (typeof service.weight === "string") {
         const weight = parseInt(service.weight, 10);
