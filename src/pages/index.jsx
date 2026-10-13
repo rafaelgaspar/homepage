@@ -4,7 +4,7 @@ import { serverSideTranslations } from "next-i18next/pages/serverSideTranslation
 import dynamic from "next/dynamic";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import Script from "next/script";
+import "../custom/js/index.js";
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { BiError } from "react-icons/bi";
 import useSWR, { SWRConfig } from "swr";
@@ -445,8 +445,6 @@ function Home({ initialSettings }) {
         <meta name="theme-color" content={themes[settings.color || "slate"][settings.theme || "dark"]} />
         <meta name="color-scheme" content="dark light"></meta>
       </Head>
-
-      <Script src="/api/config/custom.js" />
 
       <div
         className={classNames(
