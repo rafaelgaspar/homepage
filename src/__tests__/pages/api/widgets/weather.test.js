@@ -57,7 +57,7 @@ describe("pages/api/widgets/weatherapi", () => {
 
   it("falls back to settings provider key when provider=weatherapi", async () => {
     getPrivateWidgetOptions.mockResolvedValueOnce({});
-    getSettings.mockReturnValueOnce({ providers: { weatherapi: "from-settings" } });
+    getSettings.mockReturnValue({ providers: { weatherapi: "from-settings" } });
     cachedRequest.mockResolvedValueOnce({ ok: true });
 
     const req = { query: { latitude: "1", longitude: "2", lang: "en", provider: "weatherapi", cache: "2" } };
@@ -85,7 +85,7 @@ describe("pages/api/widgets/weatherapi", () => {
 
   it("returns 400 when a provider is set but no API key can be resolved", async () => {
     getPrivateWidgetOptions.mockResolvedValueOnce({});
-    getSettings.mockReturnValueOnce({ providers: {} });
+    getSettings.mockReturnValue({ providers: {} });
 
     const req = { query: { latitude: "1", longitude: "2", lang: "en", provider: "weatherapi" } };
     const res = createMockRes();

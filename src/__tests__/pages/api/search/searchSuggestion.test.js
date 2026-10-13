@@ -91,7 +91,7 @@ describe("pages/api/search/searchSuggestion", () => {
 
   it("falls back to quicklaunch custom settings when no search widget is configured", async () => {
     widgetsFromConfig.mockResolvedValueOnce([]);
-    getSettings.mockReturnValueOnce({
+    getSettings.mockReturnValue({
       quicklaunch: { provider: "custom", url: "https://ql?q=", suggestionUrl: "https://ql/suggest?q=" },
     });
     cachedRequest.mockResolvedValueOnce(["q", ["y"]]);
