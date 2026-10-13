@@ -1,57 +1,93 @@
-name: Docker CI
+name: rafaelgaspar GHCR Publish
 
 on:
-  schedule:
-    - cron: '20 0 * * *'
   push:
     branches:
-      - main
-      - feature/**
-      - fix/**
-      - dev
-    tags: [ 'v*.*.*' ]
-  pull_request:
-    branches: [ "dev" ]
-  merge_group:
+      - rafaelgaspar
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref to publish (branch tip after tag-bump)
+        type: string
+        required: false
+        default: rafaelgaspar
 
 env:
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: ghcr.io/rafaelgaspar/homepage
 
 permissions: {}
 
 jobs:
-
-
   build:
-    name: Docker Build & Push
-    if: github.repository == 'gethomepage/homepage'
-    runs-on: ubuntu-22.04
+    name: Tag, build, and push
+    runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_call' && inputs.ref || github.sha }}
+
+      - name: Configure git
+        run: |
+          git config user.name "Rafael Antunes"
+          git config user.email "me@rafaelgaspar.xyz"
+
+      - name: Fetch upstream tags
+        run: |
+          if git remote get-url upstream >/dev/null 2>&1; then
+            git remote set-url upstream https://github.com/gethomepage/homepage.git
+          else
+            git remote add upstream https://github.com/gethomepage/homepage.git
+          fi
+          git fetch --tags upstream
+
+      - name: Resolve integration tag
+        id: release
+        run: |
+          chmod +x ./.github/scripts/resolve-integration-tag.sh
+          ./.github/scripts/resolve-integration-tag.sh 'v*.*.*' '^v[0-9]+\.[0-9]+\.[0-9]+$'
+
+      - name: Create and push integration tag
+        if: steps.release.outputs.skip_release != 'true'
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          git tag -a "${TAG}" -m "rafaelgaspar integration release ${TAG}"
+          git push origin "${TAG}"
+
+      - name: Create GitHub release
+        if: steps.release.outputs.skip_release != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          body=$(cat <<EOF
+          rafaelgaspar integration release based on upstream ${{ steps.release.outputs.base_tag }}.
+
+          Container image: \`${{ env.IMAGE_NAME }}:${TAG}\`
+          EOF
+          )
+          gh release create "${TAG}" \
+            --repo rafaelgaspar/homepage \
+            --title "${TAG}" \
+            --notes "${body}" \
+            --target rafaelgaspar
 
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         with:
-          images: |
-            ${{ env.IMAGE_NAME }}
-            ghcr.io/${{ env.IMAGE_NAME }}
+          images: ${{ env.IMAGE_NAME }}
           tags: |
-            # Default tags
-            type=schedule,pattern=nightly
+            type=raw,value=${{ steps.release.outputs.tag }}
+            type=raw,value=latest
+            type=sha,prefix=,format=short
             type=ref,event=branch
-            type=ref,event=tag
-            # Versioning tags
-            type=semver,pattern=v{{version}}
-            type=semver,pattern=v{{major}}.{{minor}}
-            type=semver,pattern=v{{major}}
-          flavor: |
-            latest=auto
 
       - name: Next.js build cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v5
@@ -62,7 +98,7 @@ jobs:
             nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Install pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           version: 10
           run_install: false
@@ -83,33 +119,25 @@ jobs:
           NEXT_PUBLIC_REVISION="${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}" \
           pnpm run build
 
-      - name: Log into registry ${{ env.REGISTRY }}
-        if: github.event_name != 'pull_request'
+      - name: Log into ghcr.io
         uses: docker/login-action@abd2ef45e78c5afb21d64d4ca52ee8550d9572c7 # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Login to Docker Hub
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@abd2ef45e78c5afb21d64d4ca52ee8550d9572c7 # v4
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Setup QEMU
-        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
 
       - name: Setup Docker buildx
-        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
 
       - name: Build and push Docker image
         id: build-and-push
-        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
         with:
           context: .
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
