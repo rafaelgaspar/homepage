@@ -2,10 +2,11 @@ import { promise as ping } from "ping";
 
 import { getServiceItem } from "utils/config/service-helpers";
 import createLogger from "utils/logger";
+import { withApiMetrics } from "utils/metrics/api";
 
 const logger = createLogger("ping");
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const { groupName, serviceName } = req.query;
   const serviceItem = await getServiceItem(groupName, serviceName);
   if (!serviceItem) {
@@ -40,3 +41,5 @@ export default async function handler(req, res) {
     });
   }
 }
+
+export default withApiMetrics("/api/ping", handler);
