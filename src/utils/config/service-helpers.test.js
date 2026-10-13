@@ -558,6 +558,47 @@ describe("utils/config/service-helpers", () => {
     expect(feedWidget).not.toHaveProperty("images");
   });
 
+  it("cleanServiceGroups keeps a sanitized mcp flag and strips mcpProbe", async () => {
+    const mod = await import("./service-helpers");
+    const { cleanServiceGroups } = mod;
+
+    const cleaned = cleanServiceGroups([
+      {
+        name: "MCP",
+        services: [
+          {
+            name: "Memory MCP",
+            href: "https://memory.example.com",
+            mcpProbe: { url: "http://memory.internal:3000/mcp", tokenEnv: "MEMORY_MCP_TOKEN" },
+          },
+          {
+            name: "Flux MCP",
+            href: "https://flux.example.com/mcp",
+          },
+          {
+            name: "Grafana",
+            href: "https://grafana.example.com",
+            mcp: true,
+          },
+        ],
+        groups: [],
+      },
+    ]);
+
+    const [memory, flux, grafana] = cleaned[0].services;
+    expect(memory).toEqual(
+      expect.objectContaining({
+        name: "Memory MCP",
+        href: "https://memory.example.com",
+        mcp: true,
+      }),
+    );
+    expect(memory.mcpProbe).toBeUndefined();
+    expect(memory).not.toHaveProperty("tokenEnv");
+    expect(flux).toEqual(expect.objectContaining({ name: "Flux MCP", mcp: true }));
+    expect(grafana.mcp).toBeUndefined();
+  });
+
   it("findGroupByName deep-searches and annotates parent", async () => {
     const mod = await import("./service-helpers");
     const { findGroupByName } = mod;

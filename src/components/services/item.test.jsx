@@ -39,6 +39,11 @@ vi.mock("./site-monitor", () => ({
     return <div data-testid="site-monitor" />;
   },
 }));
+vi.mock("./mcp-status", () => ({
+  default: function McpStatusMock() {
+    return <div data-testid="mcp-status" />;
+  },
+}));
 vi.mock("./status", () => ({
   default: function StatusMock() {
     return <div data-testid="status" />;
@@ -225,6 +230,51 @@ describe("components/services/item", () => {
     expect(proxmoxBtn).toBeTruthy();
     fireEvent.click(proxmoxBtn);
     expect(screen.getByTestId("proxmoxvm-widget")).toBeInTheDocument();
+  });
+
+  it("shows MCP status and keeps a UI href clickable", () => {
+    renderWithProviders(
+      <Item
+        groupName="G"
+        useEqualHeights={false}
+        service={{
+          id: "memory-mcp",
+          name: "Memory MCP",
+          description: "UI",
+          href: "https://memory.example.com",
+          mcp: true,
+          icon: "mdi:test",
+          widgets: [],
+        }}
+      />,
+      { settings: { target: "_self", showStats: false, statusStyle: "basic" } },
+    );
+
+    expect(screen.getByTestId("mcp-status")).toBeInTheDocument();
+    const links = screen.getAllByRole("link");
+    expect(links.some((l) => l.getAttribute("href") === "https://memory.example.com")).toBe(true);
+  });
+
+  it("shows MCP status without linking an MCP endpoint href", () => {
+    renderWithProviders(
+      <Item
+        groupName="G"
+        useEqualHeights={false}
+        service={{
+          id: "flux-mcp",
+          name: "Flux MCP",
+          description: "MCP",
+          href: "https://cluster.example.com/mcp",
+          mcp: true,
+          icon: "mdi:test",
+          widgets: [],
+        }}
+      />,
+      { settings: { target: "_self", showStats: false, statusStyle: "basic" } },
+    );
+
+    expect(screen.getByTestId("mcp-status")).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
   it("does not render the app status tag when the service is marked external", () => {
