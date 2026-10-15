@@ -100,6 +100,20 @@ describe("middleware", () => {
     expect(res.type).toBe("next");
   });
 
+  it("allows fingerprinted custom CSS without auth so it can style the signin page", async () => {
+    process.env.HOMEPAGE_AUTH_ENABLED = "true";
+    process.env.HOMEPAGE_AUTH_SECRET = "secret";
+
+    const middleware = await loadMiddleware();
+    const res = await middleware(
+      createReq("localhost:3000", "http://localhost:3000/api/custom/0123456789abcdef/css/custom.css"),
+    );
+
+    expect(getToken).not.toHaveBeenCalled();
+    expect(NextResponse.next).toHaveBeenCalled();
+    expect(res.type).toBe("next");
+  });
+
   it("allows custom CSS without auth so it can style the signin page", async () => {
     process.env.HOMEPAGE_AUTH_ENABLED = "true";
     process.env.HOMEPAGE_AUTH_SECRET = "secret";
