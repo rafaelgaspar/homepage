@@ -1,5 +1,7 @@
 import { useState } from "react";
-import useSWR, { mutate } from "swr";
+import { mutate } from "swr";
+
+import { SCALING_LIST_KEY, scalingItemKey, useServiceScaling } from "utils/scaling/client";
 
 function k8sStatusUrl(service) {
   const podSelector = service.podSelector;
@@ -25,15 +27,10 @@ function pollK8sStatus(service) {
 }
 
 export default function ScalingToggle({ service }) {
-  const listKey = "/api/scaling";
-  const itemKey = service.namespace && service.app ? `${listKey}/${service.namespace}/${service.app}` : null;
-  const { data: items } = useSWR(listKey, { refreshInterval: 30000 });
-  const toggleItem = Array.isArray(items)
-    ? items.find((entry) => entry.namespace === service.namespace && entry.name === service.app)
-    : null;
-  const { data: item, mutate: mutateItem } = useSWR(toggleItem ? itemKey : null, {
-    refreshInterval: 30000,
-  });
+  const listKey = SCALING_LIST_KEY;
+  const itemKey = scalingItemKey(service.namespace, service.app);
+  const { toggleItem, item } = useServiceScaling(service);
+  const mutateItem = (...args) => mutate(itemKey, ...args);
   const [busy, setBusy] = useState(false);
 
   if (!toggleItem || !item) {
