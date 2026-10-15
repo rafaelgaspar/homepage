@@ -38,6 +38,16 @@ describe("utils/mcp/detect", () => {
     expect(gateway.tokenEnv).toBe("CLUSTER_MCP_TOKEN");
   });
 
+  it("builds probes with oidcClientId for gateway token exchange", () => {
+    const gateway = buildProbe({
+      name: "Cluster MCP",
+      href: "https://cluster-mcp.local.rafaelgaspar.xyz/mcp",
+      mcpProbe: { oidcClientId: "cluster-mcp.local.rafaelgaspar.xyz" },
+    });
+    expect(gateway.oidcClientId).toBe("cluster-mcp.local.rafaelgaspar.xyz");
+    expect(gateway.tokenEnv).toBeUndefined();
+  });
+
   it("prefers mcpProbe.url over a non-MCP href", () => {
     const service = {
       name: "Memory MCP",
