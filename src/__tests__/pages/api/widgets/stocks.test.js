@@ -58,7 +58,7 @@ describe("pages/api/widgets/stocks", () => {
   });
 
   it("returns 400 when API key isn't configured for provider", async () => {
-    getSettings.mockReturnValueOnce({ providers: {} });
+    getSettings.mockReturnValue({ providers: {} });
 
     const req = { query: { watchlist: "AAPL", provider: "finnhub" } };
     const res = createMockRes();
@@ -70,7 +70,7 @@ describe("pages/api/widgets/stocks", () => {
   });
 
   it("tolerates missing providers config and returns a helpful error", async () => {
-    getSettings.mockReturnValueOnce({});
+    getSettings.mockReturnValue({});
 
     const req = { query: { watchlist: "AAPL", provider: "finnhub" } };
     const res = createMockRes();
@@ -82,7 +82,7 @@ describe("pages/api/widgets/stocks", () => {
   });
 
   it("returns a normalized stocks response and rounds values", async () => {
-    getSettings.mockReturnValueOnce({ providers: { finnhub: "k" } });
+    getSettings.mockReturnValue({ providers: { finnhub: "k" } });
 
     cachedRequest
       .mockResolvedValueOnce({ c: 10.123, dp: -1.234 }) // AAPL
@@ -103,7 +103,7 @@ describe("pages/api/widgets/stocks", () => {
   });
 
   it("returns null entries when the watchlist includes empty tickers", async () => {
-    getSettings.mockReturnValueOnce({ providers: { finnhub: "k" } });
+    getSettings.mockReturnValue({ providers: { finnhub: "k" } });
     cachedRequest.mockResolvedValueOnce({ c: 1, dp: 1 });
 
     const req = { query: { watchlist: "AAPL,", provider: "finnhub" } };
