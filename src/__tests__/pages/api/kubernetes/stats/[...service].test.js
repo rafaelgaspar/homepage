@@ -2,11 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import createMockRes from "test-utils/create-mock-res";
 
-const { getKubeConfig, coreApi, fetchPodUsage, logger } = vi.hoisted(() => ({
+const { getKubeConfig, coreApi, fetchPodUsage, logger, recordKubernetesStatsRequest } = vi.hoisted(() => ({
   getKubeConfig: vi.fn(),
   coreApi: { listNamespacedPod: vi.fn() },
   fetchPodUsage: vi.fn(),
   logger: { error: vi.fn() },
+  recordKubernetesStatsRequest: vi.fn(),
 }));
 
 vi.mock("@kubernetes/client-node", () => ({
@@ -23,6 +24,10 @@ vi.mock("utils/config/kubernetes", () => ({
 
 vi.mock("utils/kubernetes/pod-metrics", () => ({
   fetchPodUsage,
+}));
+
+vi.mock("utils/metrics/kubernetes", () => ({
+  recordKubernetesStatsRequest,
 }));
 
 import handler from "pages/api/kubernetes/stats/[...service]";
@@ -44,6 +49,7 @@ describe("pages/api/kubernetes/stats/[...service]", () => {
 
     expect(res.statusCode).toBe(400);
     expect(res.body).toEqual({ error: "kubernetes query parameters are required" });
+    expect(recordKubernetesStatsRequest).not.toHaveBeenCalled();
   });
 
   it("returns 500 when kubernetes is not configured", async () => {
@@ -56,6 +62,7 @@ describe("pages/api/kubernetes/stats/[...service]", () => {
 
     expect(res.statusCode).toBe(500);
     expect(res.body).toEqual({ error: "No kubernetes configuration" });
+    expect(recordKubernetesStatsRequest).not.toHaveBeenCalled();
   });
 
   it("returns 500 when listNamespacedPod fails", async () => {
@@ -68,6 +75,8 @@ describe("pages/api/kubernetes/stats/[...service]", () => {
 
     expect(res.statusCode).toBe(500);
     expect(res.body).toEqual({ error: "Error communicating with kubernetes" });
+    expect(recordKubernetesStatsRequest).toHaveBeenCalledTimes(1);
+    expect(recordKubernetesStatsRequest).toHaveBeenCalledWith("k8s_error");
   });
 
   it("returns 404 when no pods match the selector", async () => {
@@ -82,6 +91,8 @@ describe("pages/api/kubernetes/stats/[...service]", () => {
     expect(res.body).toEqual({
       error: "no pods found with namespace=default and labelSelector=app.kubernetes.io/name=app",
     });
+    expect(recordKubernetesStatsRequest).toHaveBeenCalledTimes(1);
+    expect(recordKubernetesStatsRequest).toHaveBeenCalledWith("no_pods");
   });
 
   it("delegates usage to fetchPodUsage with kubeconfig and pod names", async () => {
@@ -113,6 +124,29 @@ describe("pages/api/kubernetes/stats/[...service]", () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.stats.cpu).toBe(0.25);
     expect(res.body.stats.mem).toBe(512000000);
+    expect(recordKubernetesStatsRequest).toHaveBeenCalledTimes(1);
+    expect(recordKubernetesStatsRequest).toHaveBeenCalledWith("success");
+  });
+
+  it("records prometheus_error when fetchPodUsage reports that outcome", async () => {
+    coreApi.listNamespacedPod.mockResolvedValue({
+      items: [
+        {
+          metadata: { name: "pod-a" },
+          spec: { containers: [{ resources: { limits: { cpu: "500m", memory: "1Gi" } } }] },
+        },
+      ],
+    });
+    fetchPodUsage.mockResolvedValue({ cpu: 0, mem: 0, statsOutcome: "prometheus_error" });
+
+    const req = { query: { service: ["default", "app"] } };
+    const res = createMockRes();
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(recordKubernetesStatsRequest).toHaveBeenCalledTimes(1);
+    expect(recordKubernetesStatsRequest).toHaveBeenCalledWith("prometheus_error");
   });
 
   it("aggregates limits and percent usage for matched pods", async () => {
@@ -153,6 +187,7 @@ describe("pages/api/kubernetes/stats/[...service]", () => {
     expect(stats.mem).toBe(1200000000);
     expect(stats.cpuUsage).toBeCloseTo((100 * 1.0) / 1.5, 5);
     expect(stats.memUsage).toBeCloseTo((100 * 1200000000) / 3000000000, 5);
+    expect(recordKubernetesStatsRequest).toHaveBeenCalledWith("success");
   });
 
   it("returns 500 when an unexpected error is thrown", async () => {
@@ -168,5 +203,7 @@ describe("pages/api/kubernetes/stats/[...service]", () => {
     expect(res.statusCode).toBe(500);
     expect(res.body).toEqual({ error: "unknown error" });
     expect(logger.error).toHaveBeenCalled();
+    expect(recordKubernetesStatsRequest).toHaveBeenCalledTimes(1);
+    expect(recordKubernetesStatsRequest).toHaveBeenCalledWith("k8s_error");
   });
 });
