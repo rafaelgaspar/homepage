@@ -164,18 +164,22 @@ async function fetchToolsList(probe) {
   };
 }
 
+import { recordMcpProbeResult } from "utils/metrics/mcp-probe";
+
 export async function probeOne(probe) {
   try {
     const listed = await fetchToolsList(probe);
-    return {
+    const result = {
       ok: true,
       toolCount: listed.toolCount,
       latencyMs: listed.latencyMs,
       serviceName: probe.serviceName,
       id: probe.id,
     };
+    recordMcpProbeResult(result);
+    return result;
   } catch (err) {
-    return {
+    const result = {
       ok: false,
       toolCount: 0,
       latencyMs: null,
@@ -183,5 +187,7 @@ export async function probeOne(probe) {
       serviceName: probe.serviceName,
       id: probe.id,
     };
+    recordMcpProbeResult(result);
+    return result;
   }
 }

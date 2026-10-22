@@ -4,6 +4,7 @@ import path from "path";
 import { withAuth } from "utils/auth";
 import { CONF_DIR } from "utils/config/config";
 import createLogger from "utils/logger";
+import { withApiMetrics } from "utils/metrics/api";
 
 const logger = createLogger("configFileService");
 
@@ -34,4 +35,4 @@ async function handler(req, res) {
   }
 }
 
-export default withAuth(handler, { public: (req) => req.query?.path === "custom.css" });
+export default withAuth(withApiMetrics("/api/config/[path]", handler), { public: (req) => req.query?.path === "custom.css" });

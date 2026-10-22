@@ -4,6 +4,7 @@ import { join } from "path";
 
 import { withAuth } from "utils/auth";
 import checkAndCopyConfig, { CONF_DIR } from "utils/config/config";
+import { withApiMetrics } from "utils/metrics/api";
 
 const configs = ["docker.yaml", "settings.yaml", "services.yaml", "bookmarks.yaml", "widgets.yaml"];
 
@@ -30,4 +31,4 @@ async function handler(req, res) {
   });
 }
 
-export default withAuth(handler);
+export default withAuth(withApiMetrics("/api/hash", handler));
