@@ -5,15 +5,7 @@ import { join } from "path";
 import { withAuth } from "utils/auth";
 import checkAndCopyConfig, { CONF_DIR } from "utils/config/config";
 
-const configs = [
-  "docker.yaml",
-  "settings.yaml",
-  "services.yaml",
-  "bookmarks.yaml",
-  "widgets.yaml",
-  "custom.css",
-  "custom.js",
-];
+const configs = ["docker.yaml", "settings.yaml", "services.yaml", "bookmarks.yaml", "widgets.yaml"];
 
 function hash(buffer) {
   const hashSum = createHash("sha256");
