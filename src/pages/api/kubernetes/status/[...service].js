@@ -2,6 +2,7 @@ import { CoreV1Api } from "@kubernetes/client-node";
 
 import { getKubeConfig } from "../../../../utils/config/kubernetes";
 import createLogger from "../../../../utils/logger";
+import { getToggleable } from "../../../../utils/scaling/service";
 
 import { withAuth } from "utils/auth";
 
@@ -46,6 +47,17 @@ async function handler(req, res) {
     const pods = podsResponse.items;
 
     if (pods.length === 0) {
+      try {
+        const toggle = await getToggleable(namespace, appName);
+        if (toggle.minReplicaCount === 0) {
+          res.status(200).json({
+            status: "idle",
+          });
+          return;
+        }
+      } catch {
+        // not a homepage-toggle workload — fall through to not found
+      }
       res.status(404).send({
         status: "not found",
       });
