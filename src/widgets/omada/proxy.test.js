@@ -96,7 +96,7 @@ describe("widgets/omada/proxy", () => {
     await omadaProxyHandler(req, res);
 
     expect(httpProxy).toHaveBeenCalledTimes(5);
-    expect(res.statusCode).toBe(null); // uses res.send directly without setting status
+    expect(res.statusCode).toBe(200); // send() without status() keeps the HTTP default
     expect(res.body).toBe(
       JSON.stringify({
         connectedAp: 2,
