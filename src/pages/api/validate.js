@@ -1,6 +1,7 @@
 import { withAuth } from "utils/auth";
 import checkAndCopyConfig from "utils/config/config";
 import createLogger from "utils/logger";
+import { withApiMetrics } from "utils/metrics/api";
 
 const configs = ["docker.yaml", "settings.yaml", "services.yaml", "bookmarks.yaml", "kubernetes.yaml", "proxmox.yaml"];
 const logger = createLogger("configValidationHandler");
@@ -19,4 +20,4 @@ async function handler(req, res) {
   res.send(errors);
 }
 
-export default withAuth(handler);
+export default withAuth(withApiMetrics("/api/validate", handler));

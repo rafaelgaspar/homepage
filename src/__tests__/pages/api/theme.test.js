@@ -20,7 +20,7 @@ describe("pages/api/theme", () => {
   });
 
   it("returns defaults when settings are missing", async () => {
-    getSettings.mockReturnValueOnce({});
+    getSettings.mockReturnValue({});
 
     const res = createMockRes();
     await handler({}, res);
@@ -31,7 +31,7 @@ describe("pages/api/theme", () => {
   });
 
   it("returns configured color + theme when present", async () => {
-    getSettings.mockReturnValueOnce({ color: "red", theme: "light" });
+    getSettings.mockReturnValue({ color: "red", theme: "light" });
 
     const res = createMockRes();
     await handler({}, res);

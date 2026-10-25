@@ -1,6 +1,7 @@
 import { withAuth } from "utils/auth";
 import { getDockerStats } from "utils/docker/stats";
 import createLogger from "utils/logger";
+import { withApiMetrics } from "utils/metrics/api";
 
 const logger = createLogger("dockerStats");
 
@@ -21,4 +22,4 @@ async function handler(req, res) {
   }
 }
 
-export default withAuth(handler);
+export default withAuth(withApiMetrics("/api/docker/stats", handler));
