@@ -2,6 +2,7 @@ import { withAuth } from "utils/auth";
 import { getProxmoxConfig } from "utils/config/proxmox";
 import createLogger from "utils/logger";
 import { httpProxy } from "utils/proxy/http";
+import { withApiMetrics } from "utils/metrics/api";
 
 const logger = createLogger("proxmoxStatsService");
 const VALID_VM_TYPES = new Set(["qemu", "lxc"]);
@@ -105,4 +106,4 @@ async function handler(req, res) {
   }
 }
 
-export default withAuth(handler);
+export default withAuth(withApiMetrics("/api/proxmox/stats/[...service]", handler));

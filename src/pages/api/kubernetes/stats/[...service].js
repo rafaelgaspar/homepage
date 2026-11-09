@@ -6,6 +6,7 @@ import { parseCpu, parseMemory } from "utils/kubernetes/utils";
 import createLogger from "utils/logger";
 
 import { withAuth } from "utils/auth";
+import { withApiMetrics } from "utils/metrics/api";
 
 const logger = createLogger("kubernetesStatsService");
 
@@ -92,4 +93,4 @@ async function handler(req, res) {
   }
 }
 
-export default withAuth(handler);
+export default withAuth(withApiMetrics("/api/kubernetes/stats/[...service]", handler));

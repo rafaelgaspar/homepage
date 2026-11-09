@@ -132,3 +132,13 @@ M	rebuild.log
 ==> rebuild feat/prometheus-k8s-stats on e77fd3ca224ee8dc8edf6fde5376b699184b930a
 Switched to a new branch 'feat/prometheus-k8s-stats'
 M	rebuild.log
+[feat/prometheus-k8s-stats ac304885] feat(prometheus-k8s-stats): kubernetes card stats from Prometheus
+ 10 files changed, 463 insertions(+), 109 deletions(-)
+ create mode 100644 src/utils/kubernetes/metrics-server.js
+ create mode 100644 src/utils/kubernetes/pod-metrics.js
+ create mode 100644 src/utils/kubernetes/pod-metrics.test.js
+ create mode 100644 src/utils/kubernetes/prometheus.js
+ create mode 100644 src/utils/kubernetes/prometheus.test.js
+==> rebuild feat/prometheus-self-metrics on ac3048856f0b127ddb682360042f5b77af25725e
+Switched to a new branch 'feat/prometheus-self-metrics'
+M	rebuild.log

@@ -3,6 +3,7 @@ import { withAuth } from "utils/auth";
 import { getSettings } from "utils/config/config";
 import { widgetsFromConfig } from "utils/config/widget-helpers";
 import { cachedRequest } from "utils/proxy/http";
+import { withApiMetrics } from "utils/metrics/api";
 
 async function handler(req, res) {
   const { query, providerName } = req.query;
@@ -36,4 +37,4 @@ async function handler(req, res) {
   return res.send(await cachedRequest(`${provider.suggestionUrl}${encodeURIComponent(query)}`, 5, "Mozilla/5.0"));
 }
 
-export default withAuth(handler);
+export default withAuth(withApiMetrics("/api/search/searchSuggestion", handler));

@@ -1,6 +1,7 @@
 import fs from "fs";
 
 import { readCustomAssetIfHashMatches } from "utils/custom-assets";
+import { withApiMetrics } from "utils/metrics/api";
 
 export const config = {
   api: {
@@ -12,7 +13,7 @@ export const config = {
  * @param {import("next").NextApiRequest} req
  * @param {import("next").NextApiResponse} res
  */
-export default function handler(req, res) {
+function handler(req, res) {
   if (req.method !== "GET" && req.method !== "HEAD") {
     res.setHeader("Allow", "GET, HEAD");
     return res.status(405).end("Method Not Allowed");
@@ -50,3 +51,5 @@ export default function handler(req, res) {
     stream.pipe(res);
   });
 }
+
+export default withApiMetrics("/api/custom/[hash]/[...path]", handler);
