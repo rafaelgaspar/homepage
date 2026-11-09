@@ -79,3 +79,8 @@ hint: Disable this message with "git config set advice.addEmbeddedRepo false"
 ==> rebuild feat/latest-node-and-forky on 7b3aae0a5c1f002d7f713bd10551097a057e3ebe
 Switched to a new branch 'feat/latest-node-and-forky'
 M	rebuild.log
+[feat/latest-node-and-forky 624d5f0e] feat(latest-node-and-forky): Node 26 on Debian forkly base image for GHCR
+ 2 files changed, 81 insertions(+), 4 deletions(-)
+==> rebuild feat/cacheable-custom-css on 624d5f0e1322aa1fd647c59789c9efef0acbdf49
+Switched to a new branch 'feat/cacheable-custom-css'
+M	rebuild.log
