@@ -2,10 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import createMockRes from "test-utils/create-mock-res";
 
-const { getKubeConfig, coreApi, logger } = vi.hoisted(() => ({
+const { getKubeConfig, coreApi, logger, getToggleable } = vi.hoisted(() => ({
   getKubeConfig: vi.fn(),
   coreApi: { listNamespacedPod: vi.fn() },
   logger: { error: vi.fn() },
+  getToggleable: vi.fn(),
 }));
 
 vi.mock("utils/logger", () => ({
@@ -14,6 +15,10 @@ vi.mock("utils/logger", () => ({
 
 vi.mock("utils/config/kubernetes", () => ({
   getKubeConfig,
+}));
+
+vi.mock("utils/scaling/service", () => ({
+  getToggleable,
 }));
 
 import handler from "pages/api/kubernetes/status/[...service]";
@@ -62,6 +67,7 @@ describe("pages/api/kubernetes/status/[...service]", () => {
 
   it("returns 404 when no pods match the selector", async () => {
     coreApi.listNamespacedPod.mockResolvedValue({ items: [] });
+    getToggleable.mockRejectedValue(new Error("not toggleable"));
 
     const req = { query: { service: ["default", "app"] } };
     const res = createMockRes();
@@ -70,6 +76,20 @@ describe("pages/api/kubernetes/status/[...service]", () => {
 
     expect(res.statusCode).toBe(404);
     expect(res.body).toEqual({ status: "not found" });
+  });
+
+  it("returns idle when toggleable workload is scaled down", async () => {
+    coreApi.listNamespacedPod.mockResolvedValue({ items: [] });
+    getToggleable.mockResolvedValue({ minReplicaCount: 0 });
+
+    const req = { query: { service: ["chrome", "chrome-desktop"] } };
+    const res = createMockRes();
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ status: "idle" });
+    expect(logger.error).not.toHaveBeenCalled();
   });
 
   it("returns partial when some pods are ready but not all", async () => {

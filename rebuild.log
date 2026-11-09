@@ -106,3 +106,13 @@ M	rebuild.log
 ==> rebuild feat/proxy-timeout on efcce91963d9a5c48d15de3533d1fc1174e2a062
 Switched to a new branch 'feat/proxy-timeout'
 M	rebuild.log
+[feat/proxy-timeout b13b2b80] feat(proxy-timeout): outbound proxy request and agent timeouts
+ 12 files changed, 411 insertions(+), 30 deletions(-)
+ create mode 100644 src/components/services/scaling-toggle.jsx
+ create mode 100644 src/pages/api/scaling/[namespace]/[name].js
+ create mode 100644 src/pages/api/scaling/index.js
+ create mode 100644 src/utils/proxy/timeout.js
+ create mode 100644 src/utils/scaling/service.js
+==> rebuild feat/scaling-toggle on b13b2b8044b47028f0eb3b116afa0ee6a2755abf
+Switched to a new branch 'feat/scaling-toggle'
+M	rebuild.log
