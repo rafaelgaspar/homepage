@@ -7,6 +7,7 @@ import createLogger from "utils/logger";
 
 import { withAuth } from "utils/auth";
 import { withApiMetrics } from "utils/metrics/api";
+import { recordKubernetesStatsRequest } from "utils/metrics/kubernetes";
 
 const logger = createLogger("kubernetesStatsService");
 
@@ -42,6 +43,7 @@ async function handler(req, res) {
         return null;
       });
     if (!podsResponse) {
+      recordKubernetesStatsRequest("k8s_error");
       res.status(500).send({
         error: "Error communicating with kubernetes",
       });
@@ -50,6 +52,7 @@ async function handler(req, res) {
     const pods = podsResponse.items;
 
     if (pods.length === 0) {
+      recordKubernetesStatsRequest("no_pods");
       res.status(404).send({
         error: `no pods found with namespace=${namespace} and labelSelector=${labelSelector}`,
       });
@@ -72,6 +75,7 @@ async function handler(req, res) {
     });
 
     const usage = await fetchPodUsage({ kc, namespace, podNames, logger });
+    recordKubernetesStatsRequest(usage.statsOutcome ?? "success");
 
     const stats = {
       mem: usage.mem,
@@ -87,6 +91,7 @@ async function handler(req, res) {
     });
   } catch (e) {
     if (e) logger.error(e);
+    recordKubernetesStatsRequest("k8s_error");
     res.status(500).send({
       error: "unknown error",
     });

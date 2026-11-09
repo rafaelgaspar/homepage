@@ -3,8 +3,6 @@ import { NextResponse } from "next/server";
 
 import { isAllowedHost, secureCookie } from "utils/auth";
 import { isPublicCustomCssPath } from "utils/custom-assets";
-
-
 import { isAuthEnabled } from "utils/env";
 
 const authEnabled = isAuthEnabled();

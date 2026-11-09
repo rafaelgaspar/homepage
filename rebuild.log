@@ -170,3 +170,9 @@ M	rebuild.log
 ==> rebuild feat/oidc-remote-mcp on d592f6a7683087a4fee2fcfe241bf332a454a17c
 Switched to a new branch 'feat/oidc-remote-mcp'
 M	rebuild.log
+[feat/oidc-remote-mcp 4b5b8bcb] feat(oidc-remote-mcp): gateway MCP probes via oidc-remote
+ 7 files changed, 136 insertions(+), 3 deletions(-)
+ create mode 100644 src/utils/mcp/oidc.js
+==> rebuild feat/restore-k8s-stats-metrics on 4b5b8bcbdc7f25922f041ad81bd9bf4bcefff1e1
+Switched to a new branch 'feat/restore-k8s-stats-metrics'
+M	rebuild.log
