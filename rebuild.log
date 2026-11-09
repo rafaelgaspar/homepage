@@ -122,3 +122,13 @@ M	rebuild.log
 ==> rebuild feat/fingerprinted-custom-assets on 58ad553d8084738f5c5c5b1ea1fba52bd44926ce
 Switched to a new branch 'feat/fingerprinted-custom-assets'
 M	rebuild.log
+[feat/fingerprinted-custom-assets e77fd3ca] feat(fingerprinted-custom-assets): serve plain custom assets with content-hash URLs
+ 14 files changed, 562 insertions(+), 28 deletions(-)
+ create mode 100644 src/__tests__/pages/api/custom/[hash]/[...path].test.js
+ create mode 100644 src/middleware.js.orig
+ create mode 100644 src/pages/api/custom/[hash]/[...path].js
+ create mode 100644 src/utils/custom-assets.js
+ create mode 100644 src/utils/custom-assets.test.js
+==> rebuild feat/prometheus-k8s-stats on e77fd3ca224ee8dc8edf6fde5376b699184b930a
+Switched to a new branch 'feat/prometheus-k8s-stats'
+M	rebuild.log
