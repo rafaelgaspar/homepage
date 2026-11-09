@@ -84,3 +84,10 @@ M	rebuild.log
 ==> rebuild feat/cacheable-custom-css on 624d5f0e1322aa1fd647c59789c9efef0acbdf49
 Switched to a new branch 'feat/cacheable-custom-css'
 M	rebuild.log
+[feat/cacheable-custom-css 261b7a20] feat(cacheable-custom-css): bundle custom CSS/JS via webpack
+ 9 files changed, 13 insertions(+), 26 deletions(-)
+ create mode 100644 src/custom/css/index.css
+ create mode 100644 src/custom/js/index.js
+==> rebuild feat/mcp-monitor on 261b7a202606d130898d6913685576e375c4580b
+Switched to a new branch 'feat/mcp-monitor'
+M	rebuild.log
