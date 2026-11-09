@@ -142,3 +142,31 @@ M	rebuild.log
 ==> rebuild feat/prometheus-self-metrics on ac3048856f0b127ddb682360042f5b77af25725e
 Switched to a new branch 'feat/prometheus-self-metrics'
 M	rebuild.log
+[feat/prometheus-self-metrics d592f6a7] feat(prometheus-self-metrics): app metrics, readycheck, shared registry
+ 80 files changed, 1351 insertions(+), 142 deletions(-)
+ create mode 100644 src/__tests__/pages/api/readycheck.test.js
+ create mode 100644 src/__tests__/utils/metrics/registry.test.js
+ delete mode 100644 src/middleware.js.orig
+ create mode 100644 src/pages/api/readycheck.js
+ create mode 100644 src/utils/config/reload-state.js
+ create mode 100644 src/utils/config/reload-state.test.js
+ create mode 100644 src/utils/metrics/api.js
+ create mode 100644 src/utils/metrics/api.test.js
+ create mode 100644 src/utils/metrics/boot.js
+ create mode 100644 src/utils/metrics/boot.test.js
+ create mode 100644 src/utils/metrics/config-reload.js
+ create mode 100644 src/utils/metrics/config-reload.test.js
+ create mode 100644 src/utils/metrics/kubernetes.js
+ create mode 100644 src/utils/metrics/kubernetes.test.js
+ create mode 100644 src/utils/metrics/mcp-probe.js
+ create mode 100644 src/utils/metrics/mcp-probe.test.js
+ create mode 100644 src/utils/metrics/registry.js
+ create mode 100644 src/utils/metrics/response-bytes.js
+ create mode 100644 src/utils/metrics/server.js
+ create mode 100644 src/utils/metrics/server.test.js
+ create mode 100644 src/utils/metrics/settings.js
+ create mode 100644 src/utils/metrics/settings.test.js
+ create mode 100644 src/utils/metrics/widget-upstream.js
+==> rebuild feat/oidc-remote-mcp on d592f6a7683087a4fee2fcfe241bf332a454a17c
+Switched to a new branch 'feat/oidc-remote-mcp'
+M	rebuild.log
