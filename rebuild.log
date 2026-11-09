@@ -116,3 +116,9 @@ M	rebuild.log
 ==> rebuild feat/scaling-toggle on b13b2b8044b47028f0eb3b116afa0ee6a2755abf
 Switched to a new branch 'feat/scaling-toggle'
 M	rebuild.log
+[feat/scaling-toggle 58ad553d] feat(scaling-toggle): KEDA always-on toggle API and service card control
+ 10 files changed, 145 insertions(+), 34 deletions(-)
+ create mode 100644 src/utils/scaling/client.js
+==> rebuild feat/fingerprinted-custom-assets on 58ad553d8084738f5c5c5b1ea1fba52bd44926ce
+Switched to a new branch 'feat/fingerprinted-custom-assets'
+M	rebuild.log
