@@ -1,24 +1,21 @@
-import { CoreV1Api } from "@kubernetes/client-node";
-
 import { getKubeConfig } from "../../../../utils/config/kubernetes";
 import createLogger from "../../../../utils/logger";
 
 import { withAuth } from "utils/auth";
+import { kubernetesProbeFromQuery } from "utils/kubernetes/status-probes";
+import { getKubernetesStatus } from "utils/kubernetes/watch-manager";
 
 const logger = createLogger("kubernetesStatusService");
 
 async function handler(req, res) {
-  const APP_LABEL = "app.kubernetes.io/name";
-  const { service, podSelector } = req.query;
-
-  const [namespace, appName] = service;
-  if (!namespace && !appName) {
+  const probe = kubernetesProbeFromQuery(req.query);
+  if (!probe) {
     res.status(400).send({
       error: "kubernetes query parameters are required",
     });
     return;
   }
-  const labelSelector = podSelector !== undefined ? podSelector : `${APP_LABEL}=${appName}`;
+
   try {
     const kc = getKubeConfig();
     if (!kc) {
@@ -27,39 +24,23 @@ async function handler(req, res) {
       });
       return;
     }
-    const coreApi = kc.makeApiClient(CoreV1Api);
-    const podsResponse = await coreApi
-      .listNamespacedPod({
-        namespace,
-        labelSelector,
-      })
-      .catch((err) => {
-        logger.error("Error getting pods: %d %s %s", err.statusCode, err.body, err.response);
-        return null;
-      });
-    if (!podsResponse) {
+
+    const result = await getKubernetesStatus(probe);
+    if (result?.error) {
       res.status(500).send({
-        error: "Error communicating with kubernetes",
+        error: result.error,
       });
       return;
     }
-    const pods = podsResponse.items;
 
-    if (pods.length === 0) {
+    const status = result?.status ?? "not found";
+    if (status === "not found") {
       res.status(404).send({
         status: "not found",
       });
-      logger.error(`no pods found with namespace=${namespace} and labelSelector=${labelSelector}`);
       return;
     }
-    const someReady = pods.find((pod) => ["Succeeded", "Running"].includes(pod.status.phase));
-    const allReady = pods.every((pod) => ["Succeeded", "Running"].includes(pod.status.phase));
-    let status = "down";
-    if (allReady) {
-      status = "running";
-    } else if (someReady) {
-      status = "partial";
-    }
+
     res.status(200).json({
       status,
     });
