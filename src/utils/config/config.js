@@ -1,8 +1,9 @@
-import { copyFileSync, existsSync, mkdirSync, readFileSync } from "fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync } from "fs";
 import { join } from "path";
 
 import cache from "memory-cache";
 
+import { onConfigFileTouched } from "utils/config/reload-state";
 import { loadYaml } from "utils/config/yaml";
 
 const cacheKey = "homepageEnvironmentVariables";
@@ -43,9 +44,15 @@ export default function checkAndCopyConfig(config) {
   }
 
   try {
-    loadYaml(readFileSync(configYaml, "utf8"));
+    const raw = readFileSync(configYaml, "utf8");
+    loadYaml(raw);
+    const mtimeMs = statSync(configYaml).mtimeMs;
+    onConfigFileTouched(config, mtimeMs, true);
     return true;
   } catch (e) {
+    if (existsSync(configYaml)) {
+      onConfigFileTouched(config, statSync(configYaml).mtimeMs, false);
+    }
     return { ...e, config };
   }
 }

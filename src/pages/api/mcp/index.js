@@ -5,6 +5,7 @@ import { withAllowedHost } from "utils/auth";
 import { isAuthEnabled } from "utils/env";
 import createLogger from "utils/logger";
 import { handleMcpRequest, mcpEnabled, mcpTokenAuthorized, mcpTokenConfigError } from "utils/mcp/homepage-mcp";
+import { withApiMetrics } from "utils/metrics/api";
 
 async function hasHomepageSession(req, res) {
   if (!isAuthEnabled()) return false;
@@ -41,4 +42,4 @@ async function handler(req, res) {
   return res.status(200).json(response);
 }
 
-export default withAllowedHost(handler);
+export default withAllowedHost(withApiMetrics("/api/mcp", handler));

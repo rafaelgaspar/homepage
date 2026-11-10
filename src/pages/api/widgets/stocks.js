@@ -2,6 +2,7 @@ import { withAuth } from "utils/auth";
 import { getSettings } from "utils/config/config";
 import createLogger from "utils/logger";
 import { cachedRequest } from "utils/proxy/http";
+import { withApiMetrics } from "utils/metrics/api";
 
 const logger = createLogger("stocks");
 
@@ -83,4 +84,4 @@ async function handler(req, res) {
   return res.status(400).json({ error: "Invalid configuration" });
 }
 
-export default withAuth(handler);
+export default withAuth(withApiMetrics("/api/widgets/stocks", handler));
