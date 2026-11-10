@@ -2,6 +2,7 @@ import { withAuth } from "utils/auth";
 import { getSettings } from "utils/config/config";
 import { getPrivateWidgetOptions } from "utils/config/widget-helpers";
 import { cachedRequest } from "utils/proxy/http";
+import { withApiMetrics } from "utils/metrics/api";
 
 async function handler(req, res) {
   const { latitude, longitude, units, provider, cache, lang, index } = req.query;
@@ -30,4 +31,4 @@ async function handler(req, res) {
   return res.send(await cachedRequest(apiUrl, cache));
 }
 
-export default withAuth(handler);
+export default withAuth(withApiMetrics("/api/widgets/openweathermap", handler));
