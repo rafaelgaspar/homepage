@@ -2,6 +2,7 @@ import { withAuth } from "utils/auth";
 import { startLiveStatus } from "utils/live-status/boot";
 import { liveStatusCache } from "utils/live-status/cache";
 import { attachSse } from "utils/live-status/sse";
+import { withApiMetrics } from "utils/metrics/api";
 
 export const config = {
   api: {
@@ -21,4 +22,4 @@ async function handler(req, res) {
   attachSse(req, res, liveStatusCache, { prefix });
 }
 
-export default withAuth(handler);
+export default withAuth(withApiMetrics("/api/live/stream", handler));
