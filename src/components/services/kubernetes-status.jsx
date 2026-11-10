@@ -2,28 +2,36 @@ import { t } from "i18next";
 
 import { kubernetesStatusKey, kubernetesStatusUrl } from "utils/kubernetes/status-probes";
 import { useLiveStatus } from "utils/live-status/client";
+import { useServiceScaling } from "utils/scaling/client";
 
 export default function KubernetesStatus({ service, style }) {
+  const { scaledIdle } = useServiceScaling(service);
   const key = kubernetesStatusKey(service);
-  const { data, error } = useLiveStatus(key, { fallbackUrl: kubernetesStatusUrl(service) });
+  const { data, error } = useLiveStatus(scaledIdle ? null : key, {
+    fallbackUrl: scaledIdle ? undefined : kubernetesStatusUrl(service),
+  });
 
   let statusLabel = t("docker.unknown");
   let statusTitle = "";
   let backgroundClass = "px-1.5 py-0.5 bg-theme-500/10 dark:bg-theme-900/50";
   let colorClass = "text-black/20 dark:text-white/40 opacity-20";
 
-  if (error) {
+  if (scaledIdle) {
+    statusTitle = "scaled down";
+    statusLabel = statusTitle;
+  } else if (error) {
     statusTitle = t("docker.error");
     statusLabel = statusTitle;
     colorClass = "text-rose-500/80";
   } else if (data) {
-    if (data.status === "running") {
+    if (data.status === "idle") {
+      statusTitle = "scaled down";
+      statusLabel = statusTitle;
+    } else if (data.status === "running") {
       statusTitle = data.health ?? data.status;
       statusLabel = statusTitle;
       colorClass = "text-emerald-500/80";
-    }
-
-    if (data.status === "not found" || data.status === "down" || data.status === "partial") {
+    } else if (data.status === "not found" || data.status === "down" || data.status === "partial") {
       statusTitle = data.status;
       statusLabel = statusTitle;
       colorClass = "text-orange-400/50 dark:text-orange-400/80";

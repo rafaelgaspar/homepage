@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("utils/mcp/cache", () => ({}));
+vi.mock("utils/scaling/watch", () => ({}));
 vi.mock("utils/live-status/boot", () => ({
   startLiveStatus: vi.fn(async () => {}),
 }));
