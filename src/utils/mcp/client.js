@@ -4,6 +4,7 @@ import { performance } from "perf_hooks";
 
 import { tokenClientForGateway } from "utils/mcp/oidc";
 import { getProbeTimeoutMs } from "utils/mcp/timing";
+import { recordMcpProbeResult } from "utils/metrics/mcp-probe";
 
 const PROBE_TIMEOUT_MS = getProbeTimeoutMs();
 const MCP_PROTOCOL = "2024-11-05";
@@ -173,15 +174,17 @@ async function fetchToolsList(probe) {
 export async function probeOne(probe) {
   try {
     const listed = await fetchToolsList(probe);
-    return {
+    const result = {
       ok: true,
       toolCount: listed.toolCount,
       latencyMs: listed.latencyMs,
       serviceName: probe.serviceName,
       id: probe.id,
     };
+    recordMcpProbeResult(result);
+    return result;
   } catch (err) {
-    return {
+    const result = {
       ok: false,
       toolCount: 0,
       latencyMs: null,
@@ -189,5 +192,7 @@ export async function probeOne(probe) {
       serviceName: probe.serviceName,
       id: probe.id,
     };
+    recordMcpProbeResult(result);
+    return result;
   }
 }

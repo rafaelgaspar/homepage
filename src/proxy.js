@@ -3,8 +3,6 @@ import { NextResponse } from "next/server";
 
 import { isAllowedHost, secureCookie } from "utils/auth";
 import { isPublicCustomCssPath } from "utils/custom-assets";
-
-
 import { isAuthEnabled } from "utils/env";
 
 const authEnabled = isAuthEnabled();
@@ -26,7 +24,10 @@ export async function proxy(req) {
   }
 
   const { pathname, search } = new URL(req.url);
-  const isPublicAuthPath = pathname.startsWith("/api/healthcheck") || isPublicCustomCssPath(pathname);
+  const isPublicAuthPath =
+    pathname.startsWith("/api/healthcheck") ||
+    pathname.startsWith("/api/readycheck") ||
+    isPublicCustomCssPath(pathname);
   if (authEnabled && !isPublicAuthPath) {
     // The MCP API handler authorizes both bearer tokens and Homepage sessions.
     if (pathname === "/api/mcp") {

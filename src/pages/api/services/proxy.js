@@ -5,6 +5,7 @@ import { formatApiCall } from "utils/proxy/api-helpers";
 import genericProxyHandler from "utils/proxy/handlers/generic";
 import calendarProxyHandler from "widgets/calendar/proxy";
 import widgets from "widgets/widgets";
+import { withApiMetrics } from "utils/metrics/api";
 
 const logger = createLogger("servicesProxy");
 
@@ -146,4 +147,4 @@ async function handler(req, res) {
   }
 }
 
-export default withAuth(handler);
+export default withAuth(withApiMetrics("/api/services/proxy", handler));
