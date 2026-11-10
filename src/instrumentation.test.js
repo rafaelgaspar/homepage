@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("utils/mcp/cache", () => ({}));
+vi.mock("utils/live-status/boot", () => ({
+  startLiveStatus: vi.fn(async () => {}),
+}));
+
 describe("instrumentation", () => {
   const originalEnv = process.env;
 
@@ -22,7 +27,7 @@ describe("instrumentation", () => {
     process.env.HOMEPAGE_EXTERNAL_URL = "https://homepage.example";
     const { register } = await import("./instrumentation");
 
-    register();
+    await register();
 
     expect(process.env.NEXTAUTH_SECRET).toBe("secret");
     expect(process.env.NEXTAUTH_URL).toBe("https://homepage.example");
@@ -35,7 +40,7 @@ describe("instrumentation", () => {
     process.env.NEXTAUTH_URL = "https://explicit.example";
     const { register } = await import("./instrumentation");
 
-    register();
+    await register();
 
     expect(process.env.NEXTAUTH_SECRET).toBe("explicit-secret");
     expect(process.env.NEXTAUTH_URL).toBe("https://explicit.example");
@@ -46,7 +51,7 @@ describe("instrumentation", () => {
     process.env.HOMEPAGE_EXTERNAL_URL = "https://homepage.example";
     const { register } = await import("./instrumentation");
 
-    register();
+    await register();
 
     expect(process.env.NEXTAUTH_URL).toBeUndefined();
   });
