@@ -1,9 +1,11 @@
 import { t } from "i18next";
-import useSWR from "swr";
+
+import { kubernetesStatusKey, kubernetesStatusUrl } from "utils/kubernetes/status-probes";
+import { useLiveStatus } from "utils/live-status/client";
 
 export default function KubernetesStatus({ service, style }) {
-  const podSelectorString = service.podSelector !== undefined ? `podSelector=${service.podSelector}` : "";
-  const { data, error } = useSWR(`/api/kubernetes/status/${service.namespace}/${service.app}?${podSelectorString}`);
+  const key = kubernetesStatusKey(service);
+  const { data, error } = useLiveStatus(key, { fallbackUrl: kubernetesStatusUrl(service) });
 
   let statusLabel = t("docker.unknown");
   let statusTitle = "";
