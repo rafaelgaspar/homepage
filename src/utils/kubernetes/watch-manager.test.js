@@ -26,7 +26,13 @@ vi.mock("@kubernetes/client-node", () => ({
 
 import { liveStatusCache } from "utils/live-status/cache";
 
-import { getKubernetesStatus, resetKubernetesWatchesForTests, startWatch, stopAllWatches } from "./watch-manager";
+import {
+  getKubernetesStatus,
+  refreshKubernetesIdle,
+  resetKubernetesWatchesForTests,
+  startWatch,
+  stopAllWatches,
+} from "./watch-manager";
 
 const probe = {
   namespace: "default",
@@ -90,6 +96,22 @@ describe("kubernetes watch-manager", () => {
       status: { phase: "Pending" },
     });
     expect(liveStatusCache.get(probe.key)).toEqual({ status: "down" });
+  });
+
+  it("overlays idle when a ScaledObject is cached at min replicas 0", async () => {
+    coreApi.listNamespacedPod.mockResolvedValue({ items: [] });
+    liveStatusCache.set("scaling:default/app", { namespace: "default", name: "app", minReplicaCount: 0 });
+
+    await expect(getKubernetesStatus(probe)).resolves.toEqual({ status: "idle" });
+  });
+
+  it("republishes kubernetes status when ScaledObject idle state changes", async () => {
+    liveStatusCache.set(probe.key, { status: "not found" });
+    liveStatusCache.set("scaling:default/app", { namespace: "default", name: "app", minReplicaCount: 0 });
+
+    refreshKubernetesIdle("default", "app");
+
+    expect(liveStatusCache.get(probe.key)).toEqual({ status: "idle" });
   });
 
   it("returns a communication error when the list fails", async () => {
