@@ -46,15 +46,7 @@ describe("pages/api/hash", () => {
 
     await handler(req, res);
 
-    const configs = [
-      "docker.yaml",
-      "settings.yaml",
-      "services.yaml",
-      "bookmarks.yaml",
-      "widgets.yaml",
-      "custom.css",
-      "custom.js",
-    ];
+    const configs = ["docker.yaml", "settings.yaml", "services.yaml", "bookmarks.yaml", "widgets.yaml"];
     const hashes = configs.map((c) => sha256(`content:${c}`));
     const expected = sha256(hashes.join("") + "build-1");
 
