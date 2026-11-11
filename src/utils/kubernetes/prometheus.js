@@ -1,7 +1,22 @@
 import http from "node:http";
 import https from "node:https";
 
+import {
+  classifyPrometheusQueryFailure,
+  observePrometheusQueryDuration,
+  recordPrometheusQueryFailure,
+} from "utils/metrics/kubernetes";
+
 const DEFAULT_QUERY_TIMEOUT_MS = 15000;
+
+function prometheusTargetLabel(baseUrl) {
+  try {
+    const host = new URL(baseUrl).hostname;
+    return host.split(".")[0] || "prometheus";
+  } catch {
+    return "prometheus";
+  }
+}
 
 /** Escape a pod name for use inside PromQL `pod=~"..."` alternation. */
 export function escapePromRegexLiteral(value) {
@@ -121,16 +136,25 @@ export async function fetchPodUsageFromPrometheus({
   }
 
   const { cpuQuery, memQuery } = buildPodUsageQueries({ namespace, podRegex, queryMode });
+  const target = prometheusTargetLabel(url);
+  const queryStart = process.hrtime.bigint();
 
-  const [cpuPayload, memPayload] = await Promise.all([
-    httpGetJson(promQueryUrl(url, cpuQuery).href, timeoutMs),
-    httpGetJson(promQueryUrl(url, memQuery).href, timeoutMs),
-  ]);
+  try {
+    const [cpuPayload, memPayload] = await Promise.all([
+      httpGetJson(promQueryUrl(url, cpuQuery).href, timeoutMs),
+      httpGetJson(promQueryUrl(url, memQuery).href, timeoutMs),
+    ]);
 
-  return {
-    cpu: scalarFromInstantResponse(cpuPayload),
-    mem: scalarFromInstantResponse(memPayload),
-  };
+    observePrometheusQueryDuration(Number(process.hrtime.bigint() - queryStart) / 1e9, target);
+
+    return {
+      cpu: scalarFromInstantResponse(cpuPayload),
+      mem: scalarFromInstantResponse(memPayload),
+    };
+  } catch (err) {
+    recordPrometheusQueryFailure(classifyPrometheusQueryFailure(err));
+    throw err;
+  }
 }
 
 /** Escape a label value for PromQL / metrics label matchers. */

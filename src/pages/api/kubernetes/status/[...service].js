@@ -4,6 +4,7 @@ import createLogger from "../../../../utils/logger";
 import { withAuth } from "utils/auth";
 import { kubernetesProbeFromQuery } from "utils/kubernetes/status-probes";
 import { getKubernetesStatus } from "utils/kubernetes/watch-manager";
+import { withApiMetrics } from "utils/metrics/api";
 
 const logger = createLogger("kubernetesStatusService");
 
@@ -52,4 +53,4 @@ async function handler(req, res) {
   }
 }
 
-export default withAuth(handler);
+export default withAuth(withApiMetrics("/api/kubernetes/status/[...service]", handler));
