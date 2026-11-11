@@ -2,6 +2,7 @@ import { withAuth } from "utils/auth";
 import { getSettings } from "utils/config/config";
 import createLogger from "utils/logger";
 import { cachedRequest } from "utils/proxy/http";
+import { withApiMetrics } from "utils/metrics/api";
 
 const logger = createLogger("releases");
 
@@ -20,4 +21,4 @@ async function handler(req, res) {
   }
 }
 
-export default withAuth(handler);
+export default withAuth(withApiMetrics("/api/releases", handler));

@@ -1,5 +1,6 @@
 import { withAuth } from "utils/auth";
 import checkAndCopyConfig, { getSettings } from "utils/config/config";
+import { withApiMetrics } from "utils/metrics/api";
 
 function handler(req, res) {
   checkAndCopyConfig("settings.yaml");
@@ -14,4 +15,4 @@ function handler(req, res) {
   });
 }
 
-export default withAuth(handler);
+export default withAuth(withApiMetrics("/api/theme", handler));

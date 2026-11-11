@@ -3,6 +3,7 @@ import createLogger from "../../../utils/logger";
 import { httpProxy } from "../../../utils/proxy/http";
 
 import { withAuth } from "utils/auth";
+import { withApiMetrics } from "utils/metrics/api";
 
 const logger = createLogger("longhorn");
 
@@ -88,4 +89,4 @@ async function handler(req, res) {
   });
 }
 
-export default withAuth(handler);
+export default withAuth(withApiMetrics("/api/widgets/longhorn", handler));
