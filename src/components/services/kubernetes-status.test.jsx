@@ -3,12 +3,19 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { useLiveStatus } = vi.hoisted(() => ({
+const { useLiveStatus, useServiceScaling } = vi.hoisted(() => ({
   useLiveStatus: vi.fn(),
+  useServiceScaling: vi.fn(),
 }));
 
 vi.mock("utils/live-status/client", () => ({
   useLiveStatus,
+}));
+
+vi.mock("utils/scaling/client", () => ({
+  useServiceScaling,
+  SCALING_LIST_KEY: "/api/scaling",
+  scalingItemKey: (ns, name) => `/api/scaling/${ns}/${name}`,
 }));
 
 vi.mock("i18next", () => ({
@@ -20,6 +27,7 @@ import KubernetesStatus from "./kubernetes-status";
 describe("components/services/kubernetes-status", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useServiceScaling.mockReturnValue({ scaledIdle: false });
     useLiveStatus.mockReturnValue({ data: undefined, error: undefined });
   });
 
@@ -29,6 +37,15 @@ describe("components/services/kubernetes-status", () => {
     expect(useLiveStatus).toHaveBeenCalledWith("k8s:ns/app?podSelector=x=y", {
       fallbackUrl: "/api/kubernetes/status/ns/app?podSelector=x=y",
     });
+  });
+
+  it("skips kubernetes status polling when scaled idle", () => {
+    useServiceScaling.mockReturnValue({ scaledIdle: true });
+
+    render(<KubernetesStatus service={{ namespace: "ns", app: "app" }} style="dot" />);
+
+    expect(useLiveStatus).toHaveBeenCalledWith(null, { fallbackUrl: undefined });
+    expect(screen.getByTitle("scaled down")).toBeInTheDocument();
   });
 
   it("renders the health/status label when running", () => {
