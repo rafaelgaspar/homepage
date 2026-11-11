@@ -2,6 +2,7 @@ import http from "http";
 import https from "https";
 import { performance } from "perf_hooks";
 
+import { tokenClientForGateway } from "utils/mcp/oidc";
 import { getProbeTimeoutMs } from "utils/mcp/timing";
 
 const PROBE_TIMEOUT_MS = getProbeTimeoutMs();
@@ -102,16 +103,19 @@ function mcpPost(urlString, body, headers) {
   });
 }
 
-function authHeaders(probe) {
+async function authHeaders(probe) {
   const headers = {};
-  if (probe.tokenEnv) {
+  if (probe.oidcClientId) {
+    const token = await tokenClientForGateway(probe.oidcClientId).getAccessToken();
+    headers.Authorization = `Bearer ${token}`;
+  } else if (probe.tokenEnv) {
     headers.Authorization = `Bearer ${resolveToken(probe.tokenEnv)}`;
   }
   return headers;
 }
 
 async function fetchToolsList(probe) {
-  const baseHeaders = authHeaders(probe);
+  const baseHeaders = await authHeaders(probe);
   let rpcId = 1;
   const init = await mcpPost(
     probe.url,
