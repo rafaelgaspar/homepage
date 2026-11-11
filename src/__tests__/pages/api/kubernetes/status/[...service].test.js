@@ -1,11 +1,14 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import createMockRes from "test-utils/create-mock-res";
 
-const { getKubeConfig, coreApi, logger } = vi.hoisted(() => ({
+const { getKubeConfig, coreApi, logger, watchFn } = vi.hoisted(() => ({
   getKubeConfig: vi.fn(),
   coreApi: { listNamespacedPod: vi.fn() },
   logger: { error: vi.fn() },
+  watchFn: vi.fn(async (_path, _params, _cb, done) => ({
+    abort: () => done(null),
+  })),
 }));
 
 vi.mock("utils/logger", () => ({
@@ -16,14 +19,36 @@ vi.mock("utils/config/kubernetes", () => ({
   getKubeConfig,
 }));
 
+vi.mock("@kubernetes/client-node", () => ({
+  CoreV1Api: class {},
+  Watch: class {
+    watch(...args) {
+      return watchFn(...args);
+    }
+  },
+}));
+
+import { resetKubernetesWatchesForTests, stopAllWatches } from "utils/kubernetes/watch-manager";
+import { liveStatusCache } from "utils/live-status/cache";
+
 import handler from "pages/api/kubernetes/status/[...service]";
 
 describe("pages/api/kubernetes/status/[...service]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    liveStatusCache.clear();
+    resetKubernetesWatchesForTests();
     getKubeConfig.mockReturnValue({
       makeApiClient: () => coreApi,
     });
+    watchFn.mockImplementation(async (_path, _params, _cb, done) => ({
+      abort: () => done(null),
+    }));
+  });
+
+  afterEach(async () => {
+    await stopAllWatches();
+    liveStatusCache.clear();
   });
 
   it("returns 400 when namespace/appName params are missing", async () => {
@@ -102,6 +127,18 @@ describe("pages/api/kubernetes/status/[...service]", () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.body).toEqual({ status: "running" });
+  });
+
+  it("serves a second GET from the cache without listing pods again", async () => {
+    coreApi.listNamespacedPod.mockResolvedValue({
+      items: [{ metadata: { name: "app-0" }, status: { phase: "Running" } }],
+    });
+
+    const req = { query: { service: ["default", "app"] } };
+    await handler(req, createMockRes());
+    await handler(req, createMockRes());
+
+    expect(coreApi.listNamespacedPod).toHaveBeenCalledTimes(1);
   });
 
   it("returns 500 when an unexpected error is thrown", async () => {
