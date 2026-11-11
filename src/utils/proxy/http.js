@@ -9,8 +9,10 @@ import { sanitizeErrorURL } from "./api-helpers";
 import { addCookieToJar, setCookieHeader } from "./cookie-jar";
 
 import createLogger from "utils/logger";
+import { proxyTimeoutMs } from "utils/proxy/timeout";
 
 const logger = createLogger("httpProxy");
+const PROXY_TIMEOUT_MS = proxyTimeoutMs();
 
 function addCookieHandler(url, params) {
   setCookieHeader(url, params);
@@ -65,6 +67,14 @@ function handleRequest(requestor, url, params) {
     request.on("error", (error) => {
       reject([500, error]);
     });
+
+    if (PROXY_TIMEOUT_MS > 0 && typeof request.setTimeout === "function") {
+      request.setTimeout(PROXY_TIMEOUT_MS, () => {
+        const err = new Error(`Proxy request timed out after ${PROXY_TIMEOUT_MS}ms`);
+        err.code = "ETIMEDOUT";
+        request.destroy(err);
+      });
+    }
 
     if (params?.body) {
       request.write(params.body);
@@ -236,6 +246,7 @@ function getAgent(protocol, disableIpv6) {
 
   const agentOptions = {
     keepAlive: true,
+    ...(PROXY_TIMEOUT_MS > 0 ? { timeout: PROXY_TIMEOUT_MS } : {}),
     ...(disableIpv6 ? { family: 4, autoSelectFamily: false } : { autoSelectFamilyAttemptTimeout: 500 }),
     lookup: homepageLookup,
   };
