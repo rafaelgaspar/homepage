@@ -1,0 +1,34 @@
+==> integration branch: rafaelgaspar
+==> upstream base: v2.7.0 (2e5f10134ae3961bb936d3e7c441f9a1f4a4bf4f)
+==> stack order (11 branches):
+  - feat/rafaelgaspar (base: v2.7.0)
+  - feat/latest-node-and-forky (base: feat/rafaelgaspar)
+  - feat/proxy-timeout (base: feat/latest-node-and-forky)
+  - feat/cacheable-custom-css (base: feat/proxy-timeout)
+  - feat/fingerprinted-custom-assets (base: feat/cacheable-custom-css)
+  - feat/live-status-sse (base: feat/fingerprinted-custom-assets)
+  - feat/mcp-monitor (base: feat/live-status-sse)
+  - feat/oidc-remote-for-mcp-monitor (base: feat/mcp-monitor)
+  - feat/scaling-toggle (base: feat/oidc-remote-for-mcp-monitor)
+  - feat/prometheus-k8s-stats (base: feat/scaling-toggle)
+  - feat/prometheus-self-metrics (base: feat/prometheus-k8s-stats)
+==> stack tip: feat/prometheus-self-metrics
+==> mergiraf merge driver enabled (mergiraf 0.20.0)
+==> rebuild feat/rafaelgaspar on 2e5f10134ae3961bb936d3e7c441f9a1f4a4bf4f
+warning: unable to rmdir '.fork-pack': Directory not empty
+Switched to a new branch 'feat/rafaelgaspar'
+warning: adding embedded git repository: .fork-pack
+hint: You've added another git repository inside your current repository.
+hint: Clones of the outer repository will not contain the contents of
+hint: the embedded repository and will not know how to obtain it.
+hint: If you meant to add a submodule, use:
+hint:
+hint: 	git submodule add <url> .fork-pack
+hint:
+hint: If you added this path by mistake, you can remove it from the
+hint: index with:
+hint:
+hint: 	git rm --cached .fork-pack
+hint:
+hint: See "git help submodule" for more information.
+hint: Disable this message with "git config set advice.addEmbeddedRepo false"
