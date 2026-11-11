@@ -42,5 +42,6 @@ export function buildProbe(service) {
     serviceName: service.name,
     url,
     tokenEnv: cfg.tokenEnv,
+    oidcClientId: cfg.oidcClientId,
   };
 }
