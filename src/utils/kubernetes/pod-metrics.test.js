@@ -38,7 +38,7 @@ describe("utils/kubernetes/pod-metrics", () => {
 
     expect(fetchPodUsageFromMetricsServer).toHaveBeenCalledWith({ kc, namespace, podNames, logger });
     expect(fetchPodUsageFromPrometheus).not.toHaveBeenCalled();
-    expect(usage).toEqual({ cpu: 0.1, mem: 100 });
+    expect(usage).toEqual({ cpu: 0.1, mem: 100, statsOutcome: "success" });
   });
 
   it("uses Prometheus when podMetrics is prometheus and url is set", async () => {
@@ -56,7 +56,7 @@ describe("utils/kubernetes/pod-metrics", () => {
       queryTimeoutMs: 5000,
     });
     expect(fetchPodUsageFromMetricsServer).not.toHaveBeenCalled();
-    expect(usage).toEqual({ cpu: 0.2, mem: 200 });
+    expect(usage).toEqual({ cpu: 0.2, mem: 200, statsOutcome: "success" });
   });
 
   it("returns zero usage when prometheus is selected without url", async () => {
@@ -65,7 +65,7 @@ describe("utils/kubernetes/pod-metrics", () => {
     const usage = await fetchPodUsage({ kc, namespace, podNames, logger });
 
     expect(logger.error).toHaveBeenCalled();
-    expect(usage).toEqual({ cpu: 0, mem: 0 });
+    expect(usage).toEqual({ cpu: 0, mem: 0, statsOutcome: "prometheus_error" });
   });
 
   it("returns zero usage when prometheus query fails", async () => {
@@ -78,6 +78,6 @@ describe("utils/kubernetes/pod-metrics", () => {
     const usage = await fetchPodUsage({ kc, namespace, podNames, logger });
 
     expect(logger.error).toHaveBeenCalled();
-    expect(usage).toEqual({ cpu: 0, mem: 0 });
+    expect(usage).toEqual({ cpu: 0, mem: 0, statsOutcome: "prometheus_error" });
   });
 });
