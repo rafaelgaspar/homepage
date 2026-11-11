@@ -71,7 +71,7 @@ fi
 
 # Drop privileges (when asked to) if root, otherwise run as current user
 if [ "$(id -u)" = "0" ] && [ "${PUID}" != "0" ]; then
-  exec su-exec ${PUID}:${PGID} "$@"
+  exec gosu ${PUID}:${PGID} "$@"
 else
   exec "$@"
 fi
