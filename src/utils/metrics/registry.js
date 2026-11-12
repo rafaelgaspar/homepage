@@ -322,6 +322,32 @@ export function getMcpProbeDurationHistogram() {
   );
 }
 
+export function getMcpOidcTokenCounter() {
+  return lazyMetric(
+    "mcpOidcTokenTotal",
+    (register) =>
+      new client.Counter({
+        name: "homepage_mcp_oidc_token_total",
+        help: "OIDC access-token fetches for MCP gateway probes",
+        labelNames: ["result"],
+        registers: [register],
+      }),
+  );
+}
+
+export function getMcpOidcTokenDurationHistogram() {
+  return lazyMetric(
+    "mcpOidcTokenDuration",
+    (register) =>
+      new client.Histogram({
+        name: "homepage_mcp_oidc_token_duration_seconds",
+        help: "Duration of OIDC access-token fetches for MCP gateway probes",
+        buckets: [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 15],
+        registers: [register],
+      }),
+  );
+}
+
 /** Register app metrics so /metrics exposes HELP/TYPE before first use. */
 export function registerAppMetrics() {
   getHttpRequestDurationHistogram();
@@ -346,6 +372,8 @@ export function registerAppMetrics() {
   getLiveStatusK8sLookupsCounter();
   getMcpProbeCounter();
   getMcpProbeDurationHistogram();
+  getMcpOidcTokenCounter();
+  getMcpOidcTokenDurationHistogram();
 }
 
 export async function renderMetrics() {
