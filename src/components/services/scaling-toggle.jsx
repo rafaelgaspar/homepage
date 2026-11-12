@@ -1,39 +1,10 @@
 import { useState } from "react";
-import useSWR, { mutate } from "swr";
 
-function k8sStatusUrl(service) {
-  const podSelector = service.podSelector;
-  const qs =
-    podSelector !== undefined && podSelector !== null && podSelector !== ""
-      ? `podSelector=${encodeURIComponent(podSelector)}`
-      : "";
-  return `/api/kubernetes/status/${service.namespace}/${service.app}?${qs}`;
-}
-
-function pollK8sStatus(service) {
-  const url = k8sStatusUrl(service);
-  let attempts = 0;
-  const tick = () => {
-    mutate(url).catch(() => {});
-    attempts += 1;
-    if (attempts >= 15) {
-      clearInterval(timer);
-    }
-  };
-  tick();
-  const timer = setInterval(tick, 2000);
-}
+import { scalingItemKey, useServiceScaling } from "utils/scaling/client";
 
 export default function ScalingToggle({ service }) {
-  const listKey = "/api/scaling";
-  const itemKey = service.namespace && service.app ? `${listKey}/${service.namespace}/${service.app}` : null;
-  const { data: items } = useSWR(listKey, { refreshInterval: 30000 });
-  const toggleItem = Array.isArray(items)
-    ? items.find((entry) => entry.namespace === service.namespace && entry.name === service.app)
-    : null;
-  const { data: item, mutate: mutateItem } = useSWR(toggleItem ? itemKey : null, {
-    refreshInterval: 30000,
-  });
+  const itemKey = scalingItemKey(service.namespace, service.app);
+  const { toggleItem, item } = useServiceScaling(service);
   const [busy, setBusy] = useState(false);
 
   if (!toggleItem || !item) {
@@ -63,14 +34,9 @@ export default function ScalingToggle({ service }) {
       if (!response.ok) {
         throw new Error(`scaling API ${response.status}`);
       }
-      const updated = await response.json();
-      await mutateItem(updated, false);
-      await mutate(listKey);
-      pollK8sStatus(service);
+      await response.json();
     } catch (error) {
       console.error(error);
-      await mutate(listKey);
-      await mutateItem();
     } finally {
       setBusy(false);
     }
