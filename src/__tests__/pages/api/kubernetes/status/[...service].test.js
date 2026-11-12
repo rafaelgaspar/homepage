@@ -97,6 +97,24 @@ describe("pages/api/kubernetes/status/[...service]", () => {
     expect(res.body).toEqual({ status: "not found" });
   });
 
+  it("returns idle when a cached ScaledObject is scaled down", async () => {
+    coreApi.listNamespacedPod.mockResolvedValue({ items: [] });
+    liveStatusCache.set("scaling:chrome/chrome-desktop", {
+      namespace: "chrome",
+      name: "chrome-desktop",
+      minReplicaCount: 0,
+    });
+
+    const req = { query: { service: ["chrome", "chrome-desktop"] } };
+    const res = createMockRes();
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ status: "idle" });
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
   it("returns partial when some pods are ready but not all", async () => {
     coreApi.listNamespacedPod.mockResolvedValue({
       items: [{ status: { phase: "Running" } }, { status: { phase: "Pending" } }],

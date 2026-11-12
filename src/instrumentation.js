@@ -4,7 +4,7 @@ export function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
   applyNextAuthEnv();
-  return Promise.all([import("utils/mcp/cache"), import("utils/live-status/boot")]).then(([, { startLiveStatus }]) =>
-    startLiveStatus(),
+  return Promise.all([import("utils/mcp/cache"), import("utils/scaling/watch"), import("utils/live-status/boot")]).then(
+    ([, , { startLiveStatus }]) => startLiveStatus(),
   );
 }

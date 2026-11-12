@@ -1,66 +1,14 @@
-import fs from "node:fs";
-import https from "node:https";
+import { refreshKubernetesIdle } from "utils/kubernetes/watch-manager";
+import { liveStatusCache } from "utils/live-status/cache";
+import { parseScalingCacheKey, scalingCacheKey } from "utils/scaling/keys";
+import { kubeRequest } from "utils/scaling/kube";
+import { isScalingHydrated, markScalingHydrated } from "utils/scaling/store";
 
-const TOGGLE_LABEL = "scaling.rafaelgaspar.xyz/homepage-toggle=true";
-const KEDA_GROUP = "keda.sh";
-const KEDA_VERSION = "v1alpha1";
-const KEDA_PLURAL = "scaledobjects";
-
-let kubeToken;
-let kubeCa;
-
-function loadKubeCreds() {
-  if (kubeToken) return;
-  kubeToken = fs.readFileSync("/var/run/secrets/kubernetes.io/serviceaccount/token", "utf8");
-  kubeCa = fs.readFileSync("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt");
-}
-
-function kubeRequest(method, apiPath, body) {
-  loadKubeCreds();
-  const host = process.env.KUBERNETES_SERVICE_HOST;
-  const port = process.env.KUBERNETES_SERVICE_PORT || "443";
-  const payload = body ? JSON.stringify(body) : null;
-  const isIPv6 = host?.includes(":");
-
-  return new Promise((resolve, reject) => {
-    const req = https.request(
-      {
-        host,
-        port,
-        path: apiPath,
-        method,
-        ca: kubeCa,
-        servername: isIPv6 ? "kubernetes.default.svc" : undefined,
-        headers: {
-          Authorization: `Bearer ${kubeToken}`,
-          Accept: "application/json",
-          ...(payload
-            ? {
-                "Content-Type": "application/merge-patch+json",
-                "Content-Length": Buffer.byteLength(payload),
-              }
-            : {}),
-        },
-      },
-      (res) => {
-        let chunks = "";
-        res.on("data", (chunk) => {
-          chunks += chunk;
-        });
-        res.on("end", () => {
-          if (res.statusCode >= 200 && res.statusCode < 300) {
-            resolve(chunks ? JSON.parse(chunks) : null);
-          } else {
-            reject(new Error(`kube ${method} ${apiPath}: ${res.statusCode} ${chunks}`));
-          }
-        });
-      },
-    );
-    req.on("error", reject);
-    if (payload) req.write(payload);
-    req.end();
-  });
-}
+export const HOMEPAGE_TOGGLE_LABEL = "scaling.rafaelgaspar.xyz/homepage-toggle";
+export const HOMEPAGE_TOGGLE_SELECTOR = `${HOMEPAGE_TOGGLE_LABEL}=true`;
+export const KEDA_GROUP = "keda.sh";
+export const KEDA_VERSION = "v1alpha1";
+export const KEDA_PLURAL = "scaledobjects";
 
 const ALWAYS_ON_ANNOTATIONS = {
   "autoscaling.keda.sh/force-activation": "true",
@@ -74,7 +22,7 @@ const CLEAR_ALWAYS_ON_ANNOTATIONS = {
   "autoscaling.keda.sh/paused-replicas": null,
 };
 
-function mapScaledObject(item) {
+export function mapScaledObject(item) {
   return {
     namespace: item.metadata.namespace,
     name: item.metadata.name,
@@ -83,21 +31,64 @@ function mapScaledObject(item) {
   };
 }
 
-export async function listToggleable() {
-  const query = `labelSelector=${encodeURIComponent(TOGGLE_LABEL)}`;
+export function publishMapped(mapped) {
+  liveStatusCache.set(scalingCacheKey(mapped.namespace, mapped.name), mapped);
+  refreshKubernetesIdle(mapped.namespace, mapped.name);
+  return mapped;
+}
+
+export function unpublishToggleable(namespace, name) {
+  liveStatusCache.delete(scalingCacheKey(namespace, name));
+  refreshKubernetesIdle(namespace, name);
+}
+
+export function listCachedToggleable() {
+  return Object.values(liveStatusCache.snapshot({ prefix: "scaling:" }));
+}
+
+export async function fetchToggleableList() {
+  const query = `labelSelector=${encodeURIComponent(HOMEPAGE_TOGGLE_SELECTOR)}`;
   const data = await kubeRequest("GET", `/apis/${KEDA_GROUP}/${KEDA_VERSION}/${KEDA_PLURAL}?${query}`);
   return (data.items || []).map(mapScaledObject);
 }
 
+export async function hydrateToggleableList() {
+  const items = await fetchToggleableList();
+  const seen = new Set(items.map((item) => scalingCacheKey(item.namespace, item.name)));
+  items.forEach(publishMapped);
+  for (const key of Object.keys(liveStatusCache.snapshot({ prefix: "scaling:" }))) {
+    if (!seen.has(key)) {
+      const parsed = parseScalingCacheKey(key);
+      if (parsed) {
+        unpublishToggleable(parsed.namespace, parsed.name);
+      }
+    }
+  }
+  markScalingHydrated();
+  return items;
+}
+
+export async function listToggleable() {
+  const cached = listCachedToggleable();
+  if (isScalingHydrated() || cached.length) {
+    return cached;
+  }
+  return hydrateToggleableList();
+}
+
 export async function getToggleable(namespace, name) {
+  const cached = liveStatusCache.get(scalingCacheKey(namespace, name));
+  if (cached) {
+    return cached;
+  }
   const item = await kubeRequest(
     "GET",
     `/apis/${KEDA_GROUP}/${KEDA_VERSION}/namespaces/${namespace}/${KEDA_PLURAL}/${name}`,
   );
-  if (item.metadata?.labels?.["scaling.rafaelgaspar.xyz/homepage-toggle"] !== "true") {
+  if (item.metadata?.labels?.[HOMEPAGE_TOGGLE_LABEL] !== "true") {
     throw new Error("ScaledObject is not homepage-toggleable");
   }
-  return mapScaledObject(item);
+  return publishMapped(mapScaledObject(item));
 }
 
 async function scaleDeployment(namespace, name, replicas) {
@@ -140,9 +131,8 @@ export async function setToggleState(namespace, name, { minReplicaCount, scaleDo
     }
   }
   await applyToggleState(namespace, name, item, next, { scaleDown });
-  return {
-    namespace,
-    name,
+  return publishMapped({
+    ...item,
     minReplicaCount: next,
-  };
+  });
 }
