@@ -2,11 +2,13 @@ import classNames from "classnames";
 import ResolvedIcon from "components/resolvedicon";
 import { useContext, useState } from "react";
 import { SettingsContext } from "utils/contexts/settings";
+import { isMcpEndpoint, isMcpService } from "utils/mcp/detect";
 import Docker from "widgets/docker/component";
 import Kubernetes from "widgets/kubernetes/component";
 import ProxmoxVM from "widgets/proxmoxvm/component";
 
 import KubernetesStatus from "./kubernetes-status";
+import McpStatus from "./mcp-status";
 import ScalingToggle from "./scaling-toggle";
 import Ping from "./ping";
 import ProxmoxStatus from "./proxmox-status";
@@ -15,8 +17,9 @@ import Status from "./status";
 import Widget from "./widget";
 
 export default function Item({ service, groupName, useEqualHeights }) {
+  const mcpCard = isMcpService(service);
   const scalingCard = Boolean(service.namespace && service.app);
-  const hasLink = service.href && service.href !== "#";
+  const hasLink = Boolean(service.href && service.href !== "#" && !isMcpEndpoint(service.href));
   const { settings } = useContext(SettingsContext);
   const showStats = service.showStats === false ? false : settings.showStats;
   const statusStyle = service.statusStyle !== undefined ? service.statusStyle : settings.statusStyle;
@@ -101,21 +104,28 @@ export default function Item({ service, groupName, useEqualHeights }) {
               statusStyle === "dot" ? "gap-0" : "gap-2 mr-2"
             } z-10 service-tags`}
           >
-            {service.ping && (
+            {service.ping && !mcpCard && (
               <div className="shrink-0 flex items-center justify-center service-tag service-ping">
                 <Ping groupName={groupName} serviceName={service.name} style={statusStyle} />
                 <span className="sr-only">Ping status</span>
               </div>
             )}
 
-            {service.siteMonitor && (
+            {service.siteMonitor && !mcpCard && (
               <div className="shrink-0 flex items-center justify-center service-tag service-site-monitor">
                 <SiteMonitor groupName={groupName} serviceName={service.name} style={statusStyle} />
                 <span className="sr-only">Site monitor status</span>
               </div>
             )}
 
-            {service.container && (
+            {mcpCard && (
+              <div className="shrink-0 flex items-center justify-center service-tag service-mcp-status">
+                <McpStatus service={service} style={statusStyle} />
+                <span className="sr-only">MCP status</span>
+              </div>
+            )}
+
+            {service.container && !mcpCard && (
               <button
                 type="button"
                 onClick={() => (statsOpen ? closeStats() : setStatsOpen(true))}
@@ -125,7 +135,7 @@ export default function Item({ service, groupName, useEqualHeights }) {
                 <span className="sr-only">View container stats</span>
               </button>
             )}
-            {service.app && !service.external && (
+            {service.app && !service.external && !mcpCard && (
               <button
                 type="button"
                 onClick={() => (statsOpen ? closeStats() : setStatsOpen(true))}
