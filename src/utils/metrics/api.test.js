@@ -58,6 +58,16 @@ describe("utils/metrics/api", () => {
     expect(mocks.getHttpRequestsCounter).not.toHaveBeenCalled();
   });
 
+  it("skips HTTP duration metrics for the live-status SSE route", async () => {
+    const handler = vi.fn();
+    const wrapped = withApiMetrics("/api/live/stream", handler);
+
+    await wrapped({ method: "GET" }, createMockRes());
+
+    expect(handler).toHaveBeenCalled();
+    expect(mocks.getHttpRequestsCounter).not.toHaveBeenCalled();
+  });
+
   it("records request count, duration, bytes, and in-flight on finish", async () => {
     const observe = vi.fn();
     const requestInc = vi.fn();
