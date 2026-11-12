@@ -1,10 +1,33 @@
+# syntax=docker/dockerfile:1
+# rafaelgaspar/homepage — Node 26 on Debian forky, built from fork source.
+FROM debian:forky-slim@sha256:91b0aaebf7a1ccacfe7a9cbff6ab2d6be7d9b3b6cf1dfcf44b25f9095c0e0464 AS node
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+  && apt-get upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" \
+  && apt-get install -y --no-install-recommends ca-certificates curl gnupg \
+  && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /usr/share/keyrings/nodesource.gpg \
+  && echo "deb [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_26.x nodistro main" > /etc/apt/sources.list.d/nodesource.list \
+  && printf '%s\n' \
+      'Package: nodejs' \
+      'Pin: origin deb.nodesource.com' \
+      'Pin-Priority: 1001' \
+    > /etc/apt/preferences.d/nodesource \
+  && apt-get update \
+  && apt-get install -y --no-install-recommends nodejs \
+  && node --version \
+  && npm --version \
+  && groupadd --gid 1000 node \
+  && useradd --uid 1000 --gid node --shell /bin/bash --create-home node \
+  && rm -rf /var/lib/apt/lists/*
+
 # =========================
 # Builder Stage
 # =========================
-FROM node:24-slim AS builder
+FROM node AS builder
 WORKDIR /app
 
-# Setup
 RUN mkdir config
 COPY . .
 
@@ -16,7 +39,10 @@ ENV CI=$CI
 
 # Install and build only outside CI
 RUN if [ "$CI" != "true" ]; then \
-      corepack enable && corepack prepare pnpm@latest --activate && \
+      apt-get update \
+        && apt-get install -y --no-install-recommends python3 make g++ \
+        && rm -rf /var/lib/apt/lists/* \
+        && corepack enable && corepack prepare pnpm@latest --activate && \
       pnpm install --frozen-lockfile --prefer-offline && \
       NEXT_TELEMETRY_DISABLED=1 \
       NEXT_PUBLIC_BUILDTIME=$BUILDTIME \
@@ -30,7 +56,7 @@ RUN if [ "$CI" != "true" ]; then \
 # =========================
 # Runtime Stage
 # =========================
-FROM node:24-alpine AS runner
+FROM node AS runner
 LABEL org.opencontainers.image.title="Homepage"
 LABEL org.opencontainers.image.description="A self-hosted services landing page, with docker and service integrations."
 LABEL org.opencontainers.image.url="https://github.com/gethomepage/homepage"
@@ -38,18 +64,17 @@ LABEL org.opencontainers.image.documentation='https://github.com/gethomepage/hom
 LABEL org.opencontainers.image.source='https://github.com/gethomepage/homepage'
 LABEL org.opencontainers.image.licenses='Apache-2.0'
 
-# Setup
 WORKDIR /app
 
-# Copy some files from context
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends gosu wget iputils-ping \
+  && rm -rf /var/lib/apt/lists/*
+
 COPY --link --chown=1000:1000 /public ./public/
 COPY --link --chmod=755 docker-entrypoint.sh /usr/local/bin/
 
-# Copy only necessary files from the build stage
 COPY --link --from=builder --chown=1000:1000 /app/.next/standalone/ ./
 COPY --link --from=builder --chown=1000:1000 /app/.next/static/ ./.next/static
-
-RUN apk add --no-cache su-exec iputils-ping shadow
 
 USER root
 
