@@ -9,6 +9,7 @@ const { fs, config, logger } = vi.hoisted(() => ({
   },
   config: {
     CONF_DIR: "/conf",
+    getSettings: () => ({}),
   },
   logger: {
     error: vi.fn(),

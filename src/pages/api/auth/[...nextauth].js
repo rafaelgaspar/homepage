@@ -6,6 +6,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { withAllowedHost } from "utils/auth";
 import { applyNextAuthEnv, isAuthEnabled } from "utils/env";
 import createLogger from "utils/logger";
+import { withApiMetrics } from "utils/metrics/api";
 
 const MIN_AUTH_SECRET_LENGTH = 32;
 
@@ -173,4 +174,4 @@ async function handler(req, res) {
   return nextAuthHandler(req, res);
 }
 
-export default withAllowedHost(handler);
+export default withAllowedHost(withApiMetrics("/api/auth/[...nextauth]", handler));
