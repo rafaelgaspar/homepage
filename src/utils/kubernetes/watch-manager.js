@@ -12,6 +12,7 @@ import {
   recordLiveStatusWatchReconnect,
   setLiveStatusWatches,
 } from "utils/metrics/live-status";
+import { isScaledIdle } from "utils/scaling/idle";
 
 const logger = createLogger("kubernetesWatch");
 const RECONNECT_MS = 1_000;
@@ -31,9 +32,31 @@ function podsFor(key) {
   return [...(podStore.get(key)?.values() ?? [])];
 }
 
+function overlayIdle(probe, status) {
+  if (status === "not found" && isScaledIdle(probe.namespace, probe.app)) {
+    return "idle";
+  }
+  return status;
+}
+
 function publishStatus(probe) {
-  const status = statusFromPods(podsFor(probe.key));
+  const status = overlayIdle(probe, statusFromPods(podsFor(probe.key)));
   liveStatusCache.set(probe.key, { status });
+}
+
+export function refreshKubernetesIdle(namespace, name) {
+  const snapshot = liveStatusCache.snapshot({ prefix: "k8s:" });
+  for (const key of Object.keys(snapshot)) {
+    const probe = parseKubernetesStatusKey(key);
+    if (probe?.namespace !== namespace || probe?.app !== name) {
+      continue;
+    }
+    if (podStore.has(key)) {
+      publishStatus(probe);
+      continue;
+    }
+    liveStatusCache.set(key, { status: overlayIdle(probe, snapshot[key]?.status ?? "not found") });
+  }
 }
 
 function applyWatchEvent(probe, phase, pod) {
@@ -214,8 +237,12 @@ export async function getKubernetesStatus(probe) {
   const cached = liveStatusCache.get(probe.key);
   if (cached) {
     startWatch(probe);
+    const status = overlayIdle(probe, cached.status);
+    if (status !== cached.status) {
+      liveStatusCache.set(probe.key, { ...cached, status });
+    }
     recordLiveStatusK8sLookup("hit");
-    return cached;
+    return liveStatusCache.peek(probe.key) ?? cached;
   }
 
   try {

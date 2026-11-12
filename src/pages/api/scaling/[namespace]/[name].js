@@ -29,7 +29,7 @@ async function handler(req, res) {
   } catch (err) {
     logger.error("scaling %s/%s failed: %s", namespace, name, err);
     const message = String(err.message || err);
-    if (message.includes("homepage-toggleable")) {
+    if (message.includes("homepage-toggleable") || /: 404\b/.test(message)) {
       return res.status(404).json({ error: message });
     }
     if (message.includes("minReplicaCount must be")) {
