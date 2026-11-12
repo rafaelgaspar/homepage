@@ -295,6 +295,33 @@ export function getLiveStatusK8sLookupsCounter() {
   );
 }
 
+export function getMcpProbeCounter() {
+  return lazyMetric(
+    "mcpProbeTotal",
+    (register) =>
+      new client.Counter({
+        name: "homepage_mcp_probe_total",
+        help: "MCP tools/list probe results",
+        labelNames: ["service_id", "result"],
+        registers: [register],
+      }),
+  );
+}
+
+export function getMcpProbeDurationHistogram() {
+  return lazyMetric(
+    "mcpProbeDuration",
+    (register) =>
+      new client.Histogram({
+        name: "homepage_mcp_probe_duration_seconds",
+        help: "MCP tools/list probe duration in seconds",
+        labelNames: ["service_id"],
+        buckets: [0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 15, 30],
+        registers: [register],
+      }),
+  );
+}
+
 /** Register app metrics so /metrics exposes HELP/TYPE before first use. */
 export function registerAppMetrics() {
   getHttpRequestDurationHistogram();
@@ -317,6 +344,8 @@ export function registerAppMetrics() {
   getLiveStatusWatchReconnectsCounter();
   getLiveStatusK8sListDurationHistogram();
   getLiveStatusK8sLookupsCounter();
+  getMcpProbeCounter();
+  getMcpProbeDurationHistogram();
 }
 
 export async function renderMetrics() {

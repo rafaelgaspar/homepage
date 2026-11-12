@@ -638,6 +638,8 @@ With `metrics.enabled`, Homepage exposes app metrics on `:9090/metrics`. `/api/h
 | `homepage_live_status_watch_reconnects_total`| counter   | `resource`                       | watch stream reconnects                                                           |
 | `homepage_live_status_k8s_list_duration_seconds` | histogram |                              | pod list for live status                                                          |
 | `homepage_live_status_k8s_lookups_total`     | counter   | `outcome`                        | status lookups (`hit`, `miss`, `error`)                                           |
+| `homepage_mcp_probe_total`                   | counter   | `service_id`, `result`           | MCP tools/list probes (`ok`, `timeout`, `auth`, …)                                |
+| `homepage_mcp_probe_duration_seconds`        | histogram | `service_id`                     | successful MCP probes                                                             |
 
 Default Node/process series (`process_*`, `nodejs_*`) come from `prom-client` when metrics are enabled.
 
