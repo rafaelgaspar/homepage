@@ -17,7 +17,12 @@ import { isMetricsEnabled } from "./settings";
  */
 export function withApiMetrics(route, handler) {
   return async function metricsHandler(req, res) {
-    if (route === "/api/healthcheck" || route === "/api/readycheck" || !isMetricsEnabled()) {
+    if (
+      route === "/api/healthcheck" ||
+      route === "/api/readycheck" ||
+      route === "/api/live/stream" ||
+      !isMetricsEnabled()
+    ) {
       return handler(req, res);
     }
 

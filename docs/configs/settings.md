@@ -609,7 +609,7 @@ Expose Node/process metrics on a **dedicated HTTP port** (not the main Homepage 
 
 When disabled, no metrics listener is started. When enabled, Prometheus scrapes e.g. `http://<pod-ip>:9090/metrics` without Homepage session auth.
 
-With `metrics.enabled`, Homepage exposes app metrics on `:9090/metrics`. `/api/healthcheck` and `/api/readycheck` are excluded from HTTP metrics.
+With `metrics.enabled`, Homepage exposes app metrics on `:9090/metrics`. `/api/healthcheck`, `/api/readycheck`, and `/api/live/stream` are excluded from HTTP duration metrics. SSE uses dedicated live-status gauges and counters instead.
 
 ## Readiness vs liveness
 
@@ -629,6 +629,15 @@ With `metrics.enabled`, Homepage exposes app metrics on `:9090/metrics`. `/api/h
 | `homepage_widget_upstream_duration_seconds`  | histogram | `widget_type`                    | service widget proxy upstream                                                     |
 | `homepage_widget_upstream_errors_total`      | counter   | `widget_type`, `status_code`     | upstream HTTP ≥400                                                                |
 | `homepage_config_reload_total`               | counter   | `result`                         | config file mtime change (`success` / `failure`)                                  |
+| `homepage_live_status_cache_entries`         | gauge     | `prefix`                         | fresh TTL cache entries (`k8s:`, later `mcp:` / `scaling:`)                       |
+| `homepage_live_status_cache_events_total`    | counter   | `type`, `prefix`                 | cache `set` / `delete` / `expire` events                                          |
+| `homepage_live_status_sse_connections`       | gauge     |                                  | open `/api/live/stream` clients                                                   |
+| `homepage_live_status_sse_connects_total`    | counter   |                                  | SSE client connects                                                               |
+| `homepage_live_status_sse_disconnects_total` | counter   |                                  | SSE client disconnects                                                            |
+| `homepage_live_status_watches`               | gauge     | `resource`                       | active Kubernetes watches (`pods`)                                                |
+| `homepage_live_status_watch_reconnects_total`| counter   | `resource`                       | watch stream reconnects                                                           |
+| `homepage_live_status_k8s_list_duration_seconds` | histogram |                              | pod list for live status                                                          |
+| `homepage_live_status_k8s_lookups_total`     | counter   | `outcome`                        | status lookups (`hit`, `miss`, `error`)                                           |
 
 Default Node/process series (`process_*`, `nodejs_*`) come from `prom-client` when metrics are enabled.
 

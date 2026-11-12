@@ -181,6 +181,120 @@ export function getConfigReloadCounter() {
   );
 }
 
+export function getLiveStatusCacheEntriesGauge() {
+  return lazyMetric(
+    "liveStatusCacheEntries",
+    (register) =>
+      new client.Gauge({
+        name: "homepage_live_status_cache_entries",
+        help: "Fresh live-status cache entries by key prefix",
+        labelNames: ["prefix"],
+        registers: [register],
+      }),
+  );
+}
+
+export function getLiveStatusCacheEventsCounter() {
+  return lazyMetric(
+    "liveStatusCacheEventsTotal",
+    (register) =>
+      new client.Counter({
+        name: "homepage_live_status_cache_events_total",
+        help: "Live-status cache mutation events",
+        labelNames: ["type", "prefix"],
+        registers: [register],
+      }),
+  );
+}
+
+export function getLiveStatusSseConnectionsGauge() {
+  return lazyMetric(
+    "liveStatusSseConnections",
+    (register) =>
+      new client.Gauge({
+        name: "homepage_live_status_sse_connections",
+        help: "Open live-status SSE clients",
+        registers: [register],
+      }),
+  );
+}
+
+export function getLiveStatusSseConnectsCounter() {
+  return lazyMetric(
+    "liveStatusSseConnectsTotal",
+    (register) =>
+      new client.Counter({
+        name: "homepage_live_status_sse_connects_total",
+        help: "Live-status SSE client connections",
+        registers: [register],
+      }),
+  );
+}
+
+export function getLiveStatusSseDisconnectsCounter() {
+  return lazyMetric(
+    "liveStatusSseDisconnectsTotal",
+    (register) =>
+      new client.Counter({
+        name: "homepage_live_status_sse_disconnects_total",
+        help: "Live-status SSE client disconnects",
+        registers: [register],
+      }),
+  );
+}
+
+export function getLiveStatusWatchesGauge() {
+  return lazyMetric(
+    "liveStatusWatches",
+    (register) =>
+      new client.Gauge({
+        name: "homepage_live_status_watches",
+        help: "Active live-status Kubernetes watches",
+        labelNames: ["resource"],
+        registers: [register],
+      }),
+  );
+}
+
+export function getLiveStatusWatchReconnectsCounter() {
+  return lazyMetric(
+    "liveStatusWatchReconnectsTotal",
+    (register) =>
+      new client.Counter({
+        name: "homepage_live_status_watch_reconnects_total",
+        help: "Live-status Kubernetes watch reconnects",
+        labelNames: ["resource"],
+        registers: [register],
+      }),
+  );
+}
+
+export function getLiveStatusK8sListDurationHistogram() {
+  return lazyMetric(
+    "liveStatusK8sListDuration",
+    (register) =>
+      new client.Histogram({
+        name: "homepage_live_status_k8s_list_duration_seconds",
+        help: "Duration of Kubernetes pod list calls for live status",
+        buckets: [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 15],
+        registers: [register],
+      }),
+  );
+}
+
+export function getLiveStatusK8sLookupsCounter() {
+  return lazyMetric(
+    "liveStatusK8sLookupsTotal",
+    (register) =>
+      new client.Counter({
+        name: "homepage_live_status_k8s_lookups_total",
+        help: "Kubernetes live-status lookups by cache outcome",
+        labelNames: ["outcome"],
+        registers: [register],
+      }),
+  );
+}
+
 /** Register app metrics so /metrics exposes HELP/TYPE before first use. */
 export function registerAppMetrics() {
   getHttpRequestDurationHistogram();
@@ -194,6 +308,15 @@ export function registerAppMetrics() {
   getWidgetUpstreamDurationHistogram();
   getWidgetUpstreamErrorsCounter();
   getConfigReloadCounter();
+  getLiveStatusCacheEntriesGauge();
+  getLiveStatusCacheEventsCounter();
+  getLiveStatusSseConnectionsGauge();
+  getLiveStatusSseConnectsCounter();
+  getLiveStatusSseDisconnectsCounter();
+  getLiveStatusWatchesGauge();
+  getLiveStatusWatchReconnectsCounter();
+  getLiveStatusK8sListDurationHistogram();
+  getLiveStatusK8sLookupsCounter();
 }
 
 export async function renderMetrics() {
