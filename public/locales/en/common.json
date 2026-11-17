@@ -122,6 +122,20 @@
         "up": "Up",
         "not_available": "Not Available"
     },
+    "k3shome": {
+        "ips": "IPs",
+        "ipv4": "IPv4",
+        "ipv6": "IPv6",
+        "kernel": "Kernel",
+        "kubelet": "Kubelet",
+        "versions": "Versions",
+        "k3s": "k3s",
+        "etcd": "etcd",
+        "nvidia": "nvidia",
+        "cpu": "CPU",
+        "memory": "MEM",
+        "no_runs": "No runs"
+    },
     "siteMonitor": {
         "http_status": "HTTP status",
         "error": "Error",
