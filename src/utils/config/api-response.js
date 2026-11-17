@@ -122,7 +122,7 @@ function ensureParentGroupExists(sortedGroups, configuredGroups, group, definedL
 function pruneEmptyGroups(groups) {
   // remove any groups that have no services
   return groups.filter((group) => {
-    if (group.services.length === 0 && group.groups.length === 0) {
+    if (group.services.length === 0 && (group.groups ?? []).length === 0 && !group.k3sHome) {
       return false;
     }
     if (group.groups.length > 0) {
@@ -230,7 +230,11 @@ export async function servicesResponse() {
       services: [...discoveredDockerGroup.services, ...discoveredKubernetesGroup.services, ...configuredGroup.services]
         .filter((service) => service)
         .sort(compareServices),
-      groups: [...configuredGroup.groups],
+      groups: [
+        ...(discoveredDockerGroup.groups ?? []),
+        ...(discoveredKubernetesGroup.groups ?? []),
+        ...(configuredGroup.groups ?? []),
+      ],
     };
 
     if (definedLayouts) {

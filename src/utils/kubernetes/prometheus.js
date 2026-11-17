@@ -39,6 +39,33 @@ function promQueryUrl(baseUrl, query) {
   return url;
 }
 
+/**
+ * One instant query. Returns null when Prometheus has no sample.
+ */
+export async function queryPrometheusInstant(baseUrl, query, queryTimeoutMs = DEFAULT_QUERY_TIMEOUT_MS) {
+  if (!baseUrl) {
+    throw new Error("prometheus url is required");
+  }
+  const target = prometheusTargetLabel(baseUrl);
+  const queryStart = process.hrtime.bigint();
+  try {
+    const payload = await httpGetJson(promQueryUrl(baseUrl, query).href, queryTimeoutMs);
+    observePrometheusQueryDuration(Number(process.hrtime.bigint() - queryStart) / 1e9, target);
+    if (payload?.status !== "success") {
+      throw new Error(payload?.error || "Prometheus query failed");
+    }
+    const value = payload?.data?.result?.[0]?.value?.[1];
+    if (value === undefined || value === null) {
+      return null;
+    }
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  } catch (err) {
+    recordPrometheusQueryFailure(classifyPrometheusQueryFailure(err));
+    throw err;
+  }
+}
+
 function httpGetJson(urlString, queryTimeoutMs = DEFAULT_QUERY_TIMEOUT_MS) {
   const url = new URL(urlString);
   const lib = url.protocol === "https:" ? https : http;
