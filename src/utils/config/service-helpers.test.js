@@ -77,11 +77,16 @@ vi.mock("dockerode", () => ({ default: Docker }));
 vi.mock("utils/config/docker", () => dockerCfg);
 vi.mock("utils/config/kubernetes", () => kubeCfg);
 vi.mock("utils/kubernetes/export", () => ({ default: kubeApi }));
+vi.mock("utils/k3s-home/services", () => ({
+  servicesFromK3sHome: vi.fn(async () => []),
+}));
 
 vi.mock("utils/logger", () => ({
   // Keep a stable logger instance so tests don't depend on module re-imports.
   default: vi.fn(() => state.logger),
 }));
+
+import { servicesFromK3sHome } from "utils/k3s-home/services";
 
 describe("utils/config/service-helpers", () => {
   beforeEach(() => {
@@ -823,6 +828,26 @@ describe("utils/config/service-helpers", () => {
       },
     ]);
     expect(kubeApi.isDiscoverable).toHaveBeenCalledWith({ kind: "Ingress" }, "foo");
+  });
+
+  it("servicesFromKubernetes appends k3s-home operator groups", async () => {
+    state.kubeConfig = {};
+    servicesFromK3sHome.mockResolvedValueOnce([
+      {
+        name: "Nodes",
+        services: [{ name: "mfth50", description: "free-pool", k3sHome: { kind: "node", name: "mfth50" } }],
+      },
+    ]);
+
+    const mod = await import("./service-helpers");
+    const groups = await mod.servicesFromKubernetes();
+
+    expect(groups).toEqual([
+      {
+        name: "Nodes",
+        services: [{ name: "mfth50", description: "free-pool", k3sHome: { kind: "node", name: "mfth50" } }],
+      },
+    ]);
   });
 
   it("servicesFromKubernetes logs and rethrows unexpected errors", async () => {
