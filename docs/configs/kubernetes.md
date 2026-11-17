@@ -103,6 +103,26 @@ For instance, it can be utilized to roll multiple underlying deployments under o
 
     A blank string as a podSelector does not deactivate it, but will actually select all pods in the namespace. This is a useful way to capture the resource usage of a complex application siloed to a single namespace, like Longhorn.
 
+## k3s-home operator
+
+When Kubernetes is enabled, Homepage watches `k3s-home.rafaelgaspar.xyz` Node, MaintenanceSchedule, and MaintenanceRun objects and adds **Nodes** and **Maintenance** groups. Node cards show pool (from scheduling taints), a health dot from the three Node conditions plus reachability, and four status lines: CPU in cores and memory in MiB/GiB from Prometheus `node-exporter` (`instance` is `spec.ip:9100`), IPv4 and IPv6 in separate boxes sized to the address, kernel and kubelet, then version boxes at two per line, with another line when a third version is present. ICMP loss with `up == 1` for that target is shown as up.
+
+Maintenance is a group of schedule headings. Each MaintenanceRun is its own card. The status dot is the run phase, and its hover text is the run duration. Clicking a run opens an overlay with the run, its tasks, and collapsible logs. Provision and cleanup logs come from the MaintenanceTask named on the step, the node, or the bounce. Rollout logs are the lines kept on each node. The Discord summary is rendered from Markdown and grows with the text. A running task's log is polled; logs are not sent on the dashboard live stream. The service account that reads the runs also needs `get` on `maintenancetasks`.
+
+```yaml
+mode: cluster
+# k3sHome: false  # disable
+k3sHome:
+  nodes:
+    group: Nodes
+    icon: mdi-server-network
+  maintenance:
+    group: Maintenance
+    icon: mdi-wrench-clock
+```
+
+The service account needs `get`, `list`, and `watch` on `nodes`, `maintenanceschedules`, and `maintenanceruns`, plus `get` on `maintenancetasks`, in that API group. Node CPU and memory use the Prometheus URL from `podMetrics`.
+
 ## Automatic Service Discovery
 
 Homepage features automatic service discovery by Ingress annotations. All configuration options can be applied using typical annotation syntax, beginning with `gethomepage.dev/`.

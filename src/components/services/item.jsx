@@ -1,25 +1,35 @@
 import classNames from "classnames";
-import ResolvedIcon from "components/resolvedicon";
 import { useContext, useState } from "react";
-import { SettingsContext } from "utils/contexts/settings";
-import { isMcpEndpoint, isMcpService } from "utils/mcp/detect";
-import Docker from "widgets/docker/component";
-import Kubernetes from "widgets/kubernetes/component";
-import ProxmoxVM from "widgets/proxmoxvm/component";
 
+
+import K3sHomeNode from "./k3s-home-node";
+import K3sHomeRunOverlay from "./k3s-home-run-overlay";
+import K3sHomeRunStatus from "./k3s-home-run-status";
+import K3sHomeStatus from "./k3s-home-status";
 import KubernetesStatus from "./kubernetes-status";
 import McpStatus from "./mcp-status";
-import ScalingToggle from "./scaling-toggle";
 import Ping from "./ping";
 import ProxmoxStatus from "./proxmox-status";
+import ScalingToggle from "./scaling-toggle";
 import SiteMonitor from "./site-monitor";
 import Status from "./status";
 import Widget from "./widget";
 
+import ProxmoxVM from "widgets/proxmoxvm/component";
+import Kubernetes from "widgets/kubernetes/component";
+import Docker from "widgets/docker/component";
+import { isMcpEndpoint, isMcpService } from "utils/mcp/detect";
+import { SettingsContext } from "utils/contexts/settings";
+import ResolvedIcon from "components/resolvedicon";
+
 export default function Item({ service, groupName, useEqualHeights }) {
   const mcpCard = isMcpService(service);
-  const scalingCard = Boolean(service.namespace && service.app);
-  const hasLink = Boolean(service.href && service.href !== "#" && !isMcpEndpoint(service.href));
+  const k3sHomeKind = service.k3sHome?.kind;
+  const k3sHomeNode = k3sHomeKind === "node";
+  const k3sHomeRun = k3sHomeKind === "run";
+  const [runOpen, setRunOpen] = useState(false);
+  const scalingCard = Boolean(service.namespace && service.app) && !k3sHomeKind;
+  const hasLink = Boolean(service.href && service.href !== "#" && !isMcpEndpoint(service.href) && !k3sHomeKind);
   const { settings } = useContext(SettingsContext);
   const showStats = service.showStats === false ? false : settings.showStats;
   const statusStyle = service.statusStyle !== undefined ? service.statusStyle : settings.statusStyle;
@@ -86,6 +96,19 @@ export default function Item({ service, groupName, useEqualHeights }) {
                 </p>
               </div>
             </a>
+          ) : k3sHomeRun ? (
+            <button
+              type="button"
+              onClick={() => setRunOpen(true)}
+              className="flex-1 flex items-center justify-between rounded-r-md service-title-text text-left"
+            >
+              <div className="flex-1 px-2 py-2 text-sm text-left z-10 service-name">
+                {service.name}
+                <p className="text-theme-500 dark:text-theme-300 text-xs font-light service-description">
+                  {service.description}
+                </p>
+              </div>
+            </button>
           ) : (
             <div className="flex-1 flex items-center justify-between rounded-r-md service-title-text">
               <div className="flex-1 px-2 py-2 text-sm text-left z-10 service-name">
@@ -104,14 +127,28 @@ export default function Item({ service, groupName, useEqualHeights }) {
               statusStyle === "dot" ? "gap-0" : "gap-2 mr-2"
             } z-10 service-tags`}
           >
-            {service.ping && !mcpCard && (
+            {k3sHomeNode && (
+              <div className="shrink-0 flex items-center justify-center service-tag service-k3s-home-status">
+                <K3sHomeStatus service={service} style={statusStyle} />
+                <span className="sr-only">k3s-home node status</span>
+              </div>
+            )}
+
+            {k3sHomeRun && (
+              <div className="shrink-0 flex items-center justify-center service-tag service-k3s-home-run">
+                <K3sHomeRunStatus service={service} style={statusStyle} />
+                <span className="sr-only">k3s-home run status</span>
+              </div>
+            )}
+
+            {service.ping && !mcpCard && !k3sHomeKind && (
               <div className="shrink-0 flex items-center justify-center service-tag service-ping">
                 <Ping groupName={groupName} serviceName={service.name} style={statusStyle} />
                 <span className="sr-only">Ping status</span>
               </div>
             )}
 
-            {service.siteMonitor && !mcpCard && (
+            {service.siteMonitor && !mcpCard && !k3sHomeKind && (
               <div className="shrink-0 flex items-center justify-center service-tag service-site-monitor">
                 <SiteMonitor groupName={groupName} serviceName={service.name} style={statusStyle} />
                 <span className="sr-only">Site monitor status</span>
@@ -125,7 +162,7 @@ export default function Item({ service, groupName, useEqualHeights }) {
               </div>
             )}
 
-            {service.container && !mcpCard && (
+            {service.container && !mcpCard && !k3sHomeKind && (
               <button
                 type="button"
                 onClick={() => (statsOpen ? closeStats() : setStatsOpen(true))}
@@ -135,7 +172,7 @@ export default function Item({ service, groupName, useEqualHeights }) {
                 <span className="sr-only">View container stats</span>
               </button>
             )}
-            {service.app && !service.external && !mcpCard && (
+            {service.app && !service.external && !mcpCard && !k3sHomeKind && (
               <button
                 type="button"
                 onClick={() => (statsOpen ? closeStats() : setStatsOpen(true))}
@@ -206,6 +243,11 @@ export default function Item({ service, groupName, useEqualHeights }) {
             )}
           </div>
         )}
+
+        {k3sHomeNode && <K3sHomeNode service={service} />}
+        {runOpen && k3sHomeRun ? (
+          <K3sHomeRunOverlay name={service.k3sHome.name} onClose={() => setRunOpen(false)} />
+        ) : null}
 
         {service.widgets.map((widget) => (
           <Widget widget={widget} service={service} key={widget.index} />

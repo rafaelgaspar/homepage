@@ -8,6 +8,7 @@ import getDockerArguments from "utils/config/docker";
 import { getKubeConfig } from "utils/config/kubernetes";
 import * as shvl from "utils/config/shvl";
 import { loadYaml } from "utils/config/yaml";
+import { servicesFromK3sHome } from "utils/k3s-home/services";
 import kubernetes from "utils/kubernetes/export";
 import createLogger from "utils/logger";
 import { shouldProbe } from "utils/mcp/detect";
@@ -216,10 +217,14 @@ export async function servicesFromKubernetes() {
     }
 
     // resource lists
-    const [ingressList, traefikIngressList, httpRouteList] = await Promise.all([
+    const [ingressList, traefikIngressList, httpRouteList, k3sHomeGroups] = await Promise.all([
       kubernetes.listIngress(),
       kubernetes.listTraefikIngress(),
       kubernetes.listHttpRoute(),
+      servicesFromK3sHome().catch((error) => {
+        if (error) logger.error(error);
+        return [];
+      }),
     ]);
 
     const resources = [...ingressList, ...traefikIngressList, ...httpRouteList];
@@ -256,6 +261,18 @@ export async function servicesFromKubernetes() {
       return groups;
     }, []);
 
+    for (const group of k3sHomeGroups ?? []) {
+      const existing = mappedServiceGroups.find((entry) => entry.name === group.name);
+      if (existing) {
+        existing.services.push(...(group.services ?? []));
+        if (group.groups?.length) {
+          existing.groups = [...(existing.groups ?? []), ...group.groups];
+        }
+      } else {
+        mappedServiceGroups.push(group);
+      }
+    }
+
     return mappedServiceGroups;
   } catch (e) {
     if (e) logger.error(e);
@@ -266,7 +283,7 @@ export async function servicesFromKubernetes() {
 export function cleanServiceGroups(groups) {
   return groups.map((serviceGroup) => ({
     name: serviceGroup.name,
-    services: serviceGroup.services.map((service) => {
+    services: (serviceGroup.services ?? []).map((service) => {
       const cleanedService = { ...service };
       if (shouldProbe(service)) {
         cleanedService.mcp = true;
@@ -763,6 +780,7 @@ export function cleanServiceGroups(groups) {
     }),
     type: serviceGroup.type || "group",
     groups: serviceGroup.groups ? cleanServiceGroups(serviceGroup.groups) : [],
+    ...(serviceGroup.k3sHome ? { k3sHome: serviceGroup.k3sHome } : {}),
   }));
 }
 

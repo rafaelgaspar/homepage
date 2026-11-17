@@ -1,11 +1,14 @@
 import { Disclosure, Transition } from "@headlessui/react";
 import classNames from "classnames";
-import ResolvedIcon from "components/resolvedicon";
-import List from "components/services/list";
 import { useEffect, useRef } from "react";
 import { MdKeyboardArrowDown } from "react-icons/md";
 
 import { columnMap } from "../../utils/layout/columns";
+
+import ResolvedIcon from "components/resolvedicon";
+import K3sHomeRunList from "components/services/k3s-home-run-list";
+import List from "components/services/list";
+
 
 export default function ServicesGroup({
   group,
@@ -79,13 +82,23 @@ export default function ServicesGroup({
               }}
             >
               <Disclosure.Panel className="transition-all overflow-hidden duration-300 ease-out" ref={panel} static>
-                <List
-                  groupName={group.name}
-                  services={group.services}
-                  layout={layout}
-                  useEqualHeights={useEqualHeights}
-                  header={layout?.header !== false}
-                />
+                {group.k3sHome?.kind === "schedule" ? (
+                  <K3sHomeRunList
+                    groupName={group.name}
+                    schedule={group.k3sHome}
+                    layout={layout}
+                    useEqualHeights={useEqualHeights}
+                    header={layout?.header !== false}
+                  />
+                ) : (
+                  <List
+                    groupName={group.name}
+                    services={group.services}
+                    layout={layout}
+                    useEqualHeights={useEqualHeights}
+                    header={layout?.header !== false}
+                  />
+                )}
                 {group.groups?.length > 0 && (
                   <div
                     className={`grid ${
