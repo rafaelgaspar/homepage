@@ -54,6 +54,21 @@ vi.mock("./kubernetes-status", () => ({
     return <div data-testid="kubernetes-status" />;
   },
 }));
+vi.mock("./k3s-home-status", () => ({
+  default: function K3sHomeStatusMock() {
+    return <div data-testid="k3s-home-status" />;
+  },
+}));
+vi.mock("./k3s-home-node", () => ({
+  default: function K3sHomeNodeMock() {
+    return <div data-testid="k3s-home-node" />;
+  },
+}));
+vi.mock("./k3s-home-schedule", () => ({
+  default: function K3sHomeScheduleMock() {
+    return <div data-testid="k3s-home-schedule" />;
+  },
+}));
 vi.mock("./proxmox-status", () => ({
   default: function ProxmoxStatusMock() {
     return <div data-testid="proxmox-status" />;
@@ -298,5 +313,52 @@ describe("components/services/item", () => {
     );
 
     expect(screen.queryByTestId("kubernetes-status")).not.toBeInTheDocument();
+  });
+
+  it("renders a k3s-home node card without a link and with extra status", () => {
+    renderWithProviders(
+      <Item
+        groupName="Nodes"
+        useEqualHeights={false}
+        service={{
+          id: "mfth50",
+          name: "mfth50",
+          description: "free-pool",
+          icon: "mdi-server-network",
+          k3sHome: { kind: "node", name: "mfth50" },
+          widgets: [],
+        }}
+      />,
+      { settings: { showStats: true, statusStyle: "dot" } },
+    );
+
+    expect(screen.getByText("mfth50")).toBeInTheDocument();
+    expect(screen.getByText("free-pool")).toBeInTheDocument();
+    expect(screen.getByTestId("k3s-home-status")).toBeInTheDocument();
+    expect(screen.getByTestId("k3s-home-node")).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("ping")).not.toBeInTheDocument();
+  });
+
+  it("renders a k3s-home schedule card with title only and current runs", () => {
+    renderWithProviders(
+      <Item
+        groupName="Maintenance"
+        useEqualHeights={false}
+        service={{
+          id: "provision",
+          name: "provision",
+          icon: "mdi-wrench-clock",
+          k3sHome: { kind: "schedule", name: "provision" },
+          widgets: [],
+        }}
+      />,
+      { settings: { showStats: true, statusStyle: "dot" } },
+    );
+
+    expect(screen.getByText("provision")).toBeInTheDocument();
+    expect(screen.getByTestId("k3s-home-schedule")).toBeInTheDocument();
+    expect(screen.queryByTestId("k3s-home-status")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 });

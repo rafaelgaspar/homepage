@@ -103,6 +103,24 @@ For instance, it can be utilized to roll multiple underlying deployments under o
 
     A blank string as a podSelector does not deactivate it, but will actually select all pods in the namespace. This is a useful way to capture the resource usage of a complex application siloed to a single namespace, like Longhorn.
 
+## k3s-home operator
+
+When Kubernetes is enabled, Homepage watches `k3s-home.rafaelgaspar.xyz` Node and MaintenanceSchedule objects and adds **Nodes** and **Maintenance** groups. Node cards show pool (from scheduling taints), a health dot from the three Node conditions plus ping latency, and status fields from the CR. Maintenance cards list current MaintenanceRuns for each schedule.
+
+```yaml
+mode: cluster
+# k3sHome: false  # disable
+k3sHome:
+  nodes:
+    group: Nodes
+    icon: mdi-server-network
+  maintenance:
+    group: Maintenance
+    icon: mdi-wrench-clock
+```
+
+The service account needs `get`, `list`, and `watch` on `nodes`, `maintenanceschedules`, and `maintenanceruns` in that API group.
+
 ## Automatic Service Discovery
 
 Homepage features automatic service discovery by Ingress annotations. All configuration options can be applied using typical annotation syntax, beginning with `gethomepage.dev/`.

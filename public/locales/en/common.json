@@ -122,6 +122,13 @@
         "up": "Up",
         "not_available": "Not Available"
     },
+    "k3shome": {
+        "ips": "IPs",
+        "kernel": "Kernel",
+        "kubelet": "Kubelet",
+        "versions": "Versions",
+        "no_runs": "No runs"
+    },
     "siteMonitor": {
         "http_status": "HTTP status",
         "error": "Error",

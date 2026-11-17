@@ -7,19 +7,25 @@ import Docker from "widgets/docker/component";
 import Kubernetes from "widgets/kubernetes/component";
 import ProxmoxVM from "widgets/proxmoxvm/component";
 
+import K3sHomeNode from "./k3s-home-node";
+import K3sHomeSchedule from "./k3s-home-schedule";
+import K3sHomeStatus from "./k3s-home-status";
 import KubernetesStatus from "./kubernetes-status";
 import McpStatus from "./mcp-status";
-import ScalingToggle from "./scaling-toggle";
 import Ping from "./ping";
 import ProxmoxStatus from "./proxmox-status";
+import ScalingToggle from "./scaling-toggle";
 import SiteMonitor from "./site-monitor";
 import Status from "./status";
 import Widget from "./widget";
 
 export default function Item({ service, groupName, useEqualHeights }) {
   const mcpCard = isMcpService(service);
-  const scalingCard = Boolean(service.namespace && service.app);
-  const hasLink = Boolean(service.href && service.href !== "#" && !isMcpEndpoint(service.href));
+  const k3sHomeKind = service.k3sHome?.kind;
+  const k3sHomeNode = k3sHomeKind === "node";
+  const k3sHomeSchedule = k3sHomeKind === "schedule";
+  const scalingCard = Boolean(service.namespace && service.app) && !k3sHomeKind;
+  const hasLink = Boolean(service.href && service.href !== "#" && !isMcpEndpoint(service.href) && !k3sHomeKind);
   const { settings } = useContext(SettingsContext);
   const showStats = service.showStats === false ? false : settings.showStats;
   const statusStyle = service.statusStyle !== undefined ? service.statusStyle : settings.statusStyle;
@@ -104,14 +110,21 @@ export default function Item({ service, groupName, useEqualHeights }) {
               statusStyle === "dot" ? "gap-0" : "gap-2 mr-2"
             } z-10 service-tags`}
           >
-            {service.ping && !mcpCard && (
+            {k3sHomeNode && (
+              <div className="shrink-0 flex items-center justify-center service-tag service-k3s-home-status">
+                <K3sHomeStatus service={service} style={statusStyle} />
+                <span className="sr-only">k3s-home node status</span>
+              </div>
+            )}
+
+            {service.ping && !mcpCard && !k3sHomeKind && (
               <div className="shrink-0 flex items-center justify-center service-tag service-ping">
                 <Ping groupName={groupName} serviceName={service.name} style={statusStyle} />
                 <span className="sr-only">Ping status</span>
               </div>
             )}
 
-            {service.siteMonitor && !mcpCard && (
+            {service.siteMonitor && !mcpCard && !k3sHomeKind && (
               <div className="shrink-0 flex items-center justify-center service-tag service-site-monitor">
                 <SiteMonitor groupName={groupName} serviceName={service.name} style={statusStyle} />
                 <span className="sr-only">Site monitor status</span>
@@ -125,7 +138,7 @@ export default function Item({ service, groupName, useEqualHeights }) {
               </div>
             )}
 
-            {service.container && !mcpCard && (
+            {service.container && !mcpCard && !k3sHomeKind && (
               <button
                 type="button"
                 onClick={() => (statsOpen ? closeStats() : setStatsOpen(true))}
@@ -135,7 +148,7 @@ export default function Item({ service, groupName, useEqualHeights }) {
                 <span className="sr-only">View container stats</span>
               </button>
             )}
-            {service.app && !service.external && !mcpCard && (
+            {service.app && !service.external && !mcpCard && !k3sHomeKind && (
               <button
                 type="button"
                 onClick={() => (statsOpen ? closeStats() : setStatsOpen(true))}
@@ -206,6 +219,9 @@ export default function Item({ service, groupName, useEqualHeights }) {
             )}
           </div>
         )}
+
+        {k3sHomeNode && <K3sHomeNode service={service} />}
+        {k3sHomeSchedule && <K3sHomeSchedule service={service} />}
 
         {service.widgets.map((widget) => (
           <Widget widget={widget} service={service} key={widget.index} />
