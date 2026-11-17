@@ -1,2 +1,8 @@
 ---
 # sample kubernetes config
+# mode: cluster
+# k3sHome:
+#   nodes:
+#     group: Nodes
+#   maintenance:
+#     group: Maintenance
